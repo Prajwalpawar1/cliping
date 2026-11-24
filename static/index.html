@@ -987,6 +987,290 @@
   .dlg .go { background: var(--accent); color: #fff; border: 0; cursor: pointer; }
   .dlg .go:hover { background: var(--accent-hover); }
 
+  /* ---------- Video Editor Studio Modal ---------- */
+  dialog#eddlg {
+    width: min(880px, calc(100vw - 32px));
+    max-height: 92vh;
+    border-radius: 18px;
+    padding: 0;
+    box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.28);
+    overflow: hidden;
+  }
+  .dlg-wide {
+    max-width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .ed-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+  }
+  .ed-grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 22px;
+  }
+  @media (max-width: 768px) {
+    .ed-grid { grid-template-columns: 1fr; }
+  }
+  .ed-video-wrap {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #090d16;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+    aspect-ratio: 9/16;
+    max-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ed-video-wrap video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .ed-logo-drag {
+    position: absolute;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 2px dashed #2563eb;
+    background: rgba(37, 99, 235, 0.12);
+    border-radius: 8px;
+    padding: 3px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    transition: box-shadow .12s;
+  }
+  .ed-logo-drag:active {
+    cursor: grabbing;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.5);
+  }
+  .ed-logo-drag img {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+  }
+  .ed-logo-handle {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffffff;
+    background: rgba(15, 23, 42, 0.85);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: 0.3px;
+  }
+  .btn-micro.danger {
+    color: #ef4444;
+    border-color: #fecaca;
+    background: #fef2f2;
+  }
+  .btn-micro.danger:hover {
+    background: #fee2e2;
+  }
+  .ed-wm-overlay {
+    position: absolute;
+    pointer-events: none;
+    padding: 5px 12px;
+    background: rgba(15, 23, 42, 0.65);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transition: all .2s;
+  }
+  .ed-playback-bar {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--panel-2);
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .ed-time-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .ed-quick-scrub {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .btn-micro {
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    cursor: pointer;
+    transition: all .15s;
+    color: var(--text);
+  }
+  .btn-micro:hover {
+    background: var(--panel-2);
+    border-color: var(--brand);
+    color: var(--brand);
+  }
+  .btn-micro.btn-accent {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: var(--brand);
+  }
+  .btn-micro.btn-accent:hover {
+    background: #dbeafe;
+  }
+  .ed-nav-pills {
+    display: flex;
+    gap: 6px;
+    background: var(--panel-2);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .ed-pill {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all .15s;
+    text-align: center;
+  }
+  .ed-pill.active {
+    background: #ffffff;
+    color: var(--brand);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .ed-tab-content { display: none; }
+  .ed-tab-content.active { display: block; }
+  .emoji-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+    background: var(--panel-2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .emoji-btn {
+    font-size: 18px;
+    line-height: 1;
+    padding: 6px 9px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .emoji-btn:hover {
+    transform: scale(1.22);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    border-color: var(--brand);
+  }
+  .select-styled {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    background: #ffffff;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .select-styled:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  }
+  .wm-stamp-pill {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    background: var(--panel-2);
+    border: 1px dashed var(--border);
+    color: var(--brand);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+  }
+  .ckbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .ckbox-label input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--brand);
+    cursor: pointer;
+  }
+  .btn-editclip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 13px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    color: var(--text);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-editclip:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: var(--brand);
+  }
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
   /* YouTube cookies steps in dialog */
   .cksteps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; color: #334155; }
   .cksteps a { color: #0284c7; }
@@ -1498,23 +1782,220 @@
   </form>
 </dialog>
 
-<!-- Edit Clip Modal -->
-<dialog id="eddlg" aria-labelledby="eddlgTitle">
-  <form class="dlg" id="edform" method="dialog">
-    <h2 id="eddlgTitle">Edit clip <span class="sub" id="edWhich"></span></h2>
-    <div><label class="lbl" for="edTitle">Title</label><input type="text" id="edTitle" maxlength="500"></div>
-    <div class="two">
-      <div><label class="lbl" for="edStart">Start (seconds into video)</label>
-        <input type="number" id="edStart" min="0" step="0.1" required inputmode="decimal" aria-describedby="edLenHint"></div>
-      <div><label class="lbl" for="edEnd">End (seconds into video)</label>
-        <input type="number" id="edEnd" min="0" step="0.1" required inputmode="decimal" aria-describedby="edLenHint"></div>
+<!-- Edit Clip Modal: ASG Video Editor Studio -->
+<dialog id="eddlg" aria-labelledby="eddlgTitle" class="editor-modal">
+  <form class="dlg dlg-wide" id="edform" method="dialog">
+    <div class="ed-header">
+      <div>
+        <h2 id="eddlgTitle">✂️ Video Editor Studio <span class="sub" id="edWhich"></span></h2>
+        <p class="field-hint" style="margin:2px 0 0;">Crop aspect ratio, viral emojis, logo watermark, trim timing &amp; styled captions.</p>
+      </div>
+      <button type="button" class="iconbtn" id="edCloseX" aria-label="Close dialog" style="margin-left:auto;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
     </div>
-    <p class="field-hint" id="edLenHint" aria-live="polite"></p>
-    <div><label class="lbl" for="edText">Caption text</label><textarea id="edText" maxlength="5000" aria-describedby="edTextHint"></textarea>
-      <p class="field-hint" id="edTextHint">Fix words and they keep timing. Leave empty for no captions.</p>
-      <button type="button" class="ghost" id="edReload" style="margin-top:6px;">Reset to what's said in this range</button></div>
+
+    <div class="ed-grid">
+      <!-- Left Column: Video Preview Player & Scrubber -->
+      <div class="ed-preview-col">
+        <div class="ed-video-wrap" id="edVideoWrap">
+          <video id="edVideoPreview" controls playsinline preload="metadata"></video>
+          <!-- Freeform Draggable Channel Logo Image -->
+          <div id="edLogoDraggable" class="ed-logo-drag" hidden>
+            <img id="edLogoImg" src="" alt="Channel Logo">
+            <div class="ed-logo-handle">✥ Drag anywhere</div>
+          </div>
+        </div>
+        <div class="ed-playback-bar">
+          <div class="ed-time-info">
+            <span>Video Time: <strong id="edCurrentTime">0.0s</strong></span>
+            <span class="badge" id="edLenBadge" style="background:var(--accent);color:#fff;font-weight:700;">0.0s</span>
+          </div>
+          <div class="ed-quick-scrub">
+            <button type="button" class="btn-micro" id="edNudgeBack" title="Back 1s">⏮ -1s</button>
+            <button type="button" class="btn-micro" id="edNudgeFwd" title="Forward 1s">+1s ⏭</button>
+            <button type="button" class="btn-micro btn-accent" id="edSetStartBtn" title="Set Start to current position">⏱ Set Start</button>
+            <button type="button" class="btn-micro btn-accent" id="edSetEndBtn" title="Set End to current position">⏱ Set End</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Editor Controls -->
+      <div class="ed-controls-col">
+        <!-- Editor Tabs / Sections -->
+        <div class="ed-nav-pills" role="tablist">
+          <button type="button" class="ed-pill active" data-edtab="crop">✂️ Crop &amp; Time</button>
+          <button type="button" class="ed-pill" data-edtab="branding">🔥 Emojis &amp; Logo</button>
+          <button type="button" class="ed-pill" data-edtab="captions">💬 Captions &amp; Title</button>
+        </div>
+
+        <!-- Tab 1: Crop & Time -->
+        <div class="ed-tab-content active" id="edtab-crop">
+          <div class="two">
+            <div>
+              <label class="lbl" for="edStart">Start (video seconds)</label>
+              <input type="number" id="edStart" min="0" step="0.1" required inputmode="decimal" aria-describedby="edLenHint">
+            </div>
+            <div>
+              <label class="lbl" for="edEnd">End (video seconds)</label>
+              <input type="number" id="edEnd" min="0" step="0.1" required inputmode="decimal" aria-describedby="edLenHint">
+            </div>
+          </div>
+          <p class="field-hint" id="edLenHint" aria-live="polite" style="margin-top:6px; font-weight:600;"></p>
+
+          <div style="margin-top:12px;">
+            <label class="lbl" for="edAspect">Crop / Aspect Ratio</label>
+            <select id="edAspect" class="select-styled">
+              <option value="9:16">📱 9:16 Vertical (Shorts / Reels / TikTok)</option>
+              <option value="1:1">🟦 1:1 Square (Feed / Instagram)</option>
+              <option value="16:9">📺 16:9 Landscape (Standard YouTube)</option>
+            </select>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label class="lbl" for="edLayout">Framing Layout</label>
+            <select id="edLayout" class="select-styled">
+              <option value="auto">🎯 Smart Speaker Tracking (Auto)</option>
+              <option value="fit">🖼️ Fit Full Frame (Blurred Background)</option>
+              <option value="podcast">🎙️ Podcast Stack (Split Top/Bottom)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tab 2: Emojis & Branding -->
+        <div class="ed-tab-content" id="edtab-branding">
+          <div>
+            <label class="lbl" for="edHook">Opening Hook Banner</label>
+            <input type="text" id="edHook" maxlength="500" placeholder="e.g. WAIT FOR THE END 🔥">
+            <p class="field-hint">High-impact banner text shown during the opening 3.5 seconds.</p>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label class="lbl">Viral Emoji Quick Inserter</label>
+            <div class="emoji-palette" id="emojiPalette">
+              <button type="button" class="emoji-btn" data-emoji="🔥">🔥</button>
+              <button type="button" class="emoji-btn" data-emoji="🚀">🚀</button>
+              <button type="button" class="emoji-btn" data-emoji="😱">😱</button>
+              <button type="button" class="emoji-btn" data-emoji="💡">💡</button>
+              <button type="button" class="emoji-btn" data-emoji="💯">💯</button>
+              <button type="button" class="emoji-btn" data-emoji="👑">👑</button>
+              <button type="button" class="emoji-btn" data-emoji="😂">😂</button>
+              <button type="button" class="emoji-btn" data-emoji="👀">👀</button>
+              <button type="button" class="emoji-btn" data-emoji="🎯">🎯</button>
+              <button type="button" class="emoji-btn" data-emoji="⚡">⚡</button>
+              <button type="button" class="emoji-btn" data-emoji="🤯">🤯</button>
+              <button type="button" class="emoji-btn" data-emoji="👏">👏</button>
+              <button type="button" class="emoji-btn" data-emoji="⭐">⭐</button>
+              <button type="button" class="emoji-btn" data-emoji="💰">💰</button>
+              <button type="button" class="emoji-btn" data-emoji="🚨">🚨</button>
+            </div>
+          </div>
+
+          <!-- Channel Logo Image & Freeform Drag Placement -->
+          <div class="logo-config-card" style="margin-top:14px; background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label class="lbl" style="margin:0; font-size:14px; display:flex; align-items:center; gap:6px;">
+                <span>🖼️ Channel Logo Image</span>
+                <span class="badge" style="background:var(--brand);color:#fff;font-size:11px;">Interactive Freeform Placement</span>
+              </label>
+              <button type="button" class="btn-micro danger" id="edBtnRemoveLogo" hidden>✕ Remove Logo</button>
+            </div>
+            <p class="field-hint" style="margin:4px 0 10px;">Upload your logo image. <strong>Click &amp; drag it anywhere</strong> on the video preview to place it exactly where you want.</p>
+
+            <input type="file" id="edLogoFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn-micro btn-accent" id="edBtnUploadLogo" style="padding:8px 14px; font-size:13px;">
+                📁 Upload Channel Logo (PNG / JPG / WebP)
+              </button>
+              <div id="edLogoStatus" style="font-size:12.5px; color:var(--text-muted); font-weight:500;">No logo image uploaded</div>
+            </div>
+
+            <div id="edLogoSliders" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                <span style="font-weight:600; color:#1e293b;">Placement Coordinates:</span>
+                <span id="edLogoCoordsBadge" class="badge" style="background:#eff6ff; color:var(--brand); border:1px solid #bfdbfe; font-weight:700;">X: 85%, Y: 8% (Drag freely)</span>
+              </div>
+              <div class="quick-preset-coords" style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-micro" data-coord="top-right">↗ Top Right</button>
+                <button type="button" class="btn-micro" data-coord="top-left">↖ Top Left</button>
+                <button type="button" class="btn-micro" data-coord="center">🎯 Center</button>
+                <button type="button" class="btn-micro" data-coord="bottom-right">↘ Bottom Right</button>
+                <button type="button" class="btn-micro" data-coord="bottom-left">↙ Bottom Left</button>
+              </div>
+
+              <div class="two" style="margin-top:4px;">
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; margin-bottom:4px;">
+                    <span>Logo Size</span>
+                    <span id="edLogoSizeVal" style="color:var(--brand);">16%</span>
+                  </div>
+                  <input type="range" id="edLogoSize" min="6" max="45" step="1" value="16" style="width:100%;">
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; margin-bottom:4px;">
+                    <span>Logo Opacity</span>
+                    <span id="edLogoOpacityVal" style="color:var(--brand);">90%</span>
+                  </div>
+                  <input type="range" id="edLogoOpacity" min="20" max="100" step="5" value="90" style="width:100%;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+            <label class="ckbox-label">
+              <input type="checkbox" id="edHighlight">
+              <span>✨ Highlight key viral words in captions</span>
+            </label>
+            <label class="ckbox-label">
+              <input type="checkbox" id="edEmoji">
+              <span>🤖 Auto-insert dynamic caption emojis</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Tab 3: Captions & Title -->
+        <div class="ed-tab-content" id="edtab-captions">
+          <div>
+            <label class="lbl" for="edTitle">Clip Title</label>
+            <input type="text" id="edTitle" maxlength="500" placeholder="Catchy title for YouTube &amp; Socials">
+          </div>
+
+          <div style="margin-top:12px;">
+            <label class="lbl" for="edStyle">Caption Style</label>
+            <select id="edStyle" class="select-styled">
+              <option value="yellow">Yellow Highlight (Viral Default)</option>
+              <option value="white">Clean White</option>
+              <option value="box">Black Box (High Contrast)</option>
+              <option value="comic">Comic Pop (Dynamic)</option>
+              <option value="impact">Bold Impact</option>
+              <option value="tall">Tall Modern</option>
+              <option value="buildup">Word-by-word Build-up</option>
+              <option value="none">No Captions (Clean Footage)</option>
+            </select>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label class="lbl" for="edText">Caption Text (Word-by-Word)</label>
+            <textarea id="edText" rows="4" maxlength="5000" aria-describedby="edTextHint"></textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+              <p class="field-hint" id="edTextHint" style="margin:0">Fix words and they keep spoken timing. Leave empty for no captions.</p>
+              <button type="button" class="ghost" id="edReload" style="font-size:12px; padding:4px 8px;">Reset to spoken words</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="err" id="ederr" role="alert"></div>
-    <div class="btns"><button type="button" class="ghost" id="edCancel">Cancel</button><button type="submit" class="go" id="edSubmit">Save and re-render</button></div>
+
+    <div class="btns" style="margin-top:16px;">
+      <button type="button" class="ghost" id="edCancel">Cancel</button>
+      <button type="submit" class="go" id="edSubmit">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+        <span>Save &amp; Re-render Edited Video</span>
+      </button>
+    </div>
   </form>
 </dialog>
 
@@ -2039,6 +2520,8 @@ function clipCard(c, jobId, i) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16"/></svg>Download</a>
         <button class="btn-copysocial" type="button" data-copysocial="${esc(key)}" title="Copy Title, Hook, and Tags for Socials">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Text</button>
+        <button class="btn-editclip" type="button" data-edit="${esc(jobId)}:${i}" title="Edit clip: crop, emojis, logo, text">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg><span>Edit</span></button>
         <button class="post" type="button" data-post="${esc(jobId)}:${i}">
           <svg width="16" height="16" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="4" fill="#ef4444"/><path d="M10 9v6l5-3z" fill="#fff"/></svg><span class="post-txt">Post to YouTube</span></button>
         <button class="more" type="button" data-more="${esc(jobId)}:${i}" aria-haspopup="menu" aria-label="More options">
@@ -2474,14 +2957,78 @@ $("#ytform")?.addEventListener("submit", async (e) => {
   }
 });
 
-// ---------- Clip Editor Modal ----------
+// ---------- Clip Editor Modal: ASG Video Editor Studio ----------
 let editing = null;
 let transcriptTicket = 0;
+let isDraggingLogo = false;
+let logoDragStart = { startX: 0, startY: 0, initLeft: 0, initTop: 0, wrapW: 0, wrapH: 0, elW: 0, elH: 0 };
+let currentLogo = { file: null, xPct: 85, yPct: 8, sizePct: 16, opacity: 0.9 };
 
 function updateLen() {
   const len = +$("#edEnd").value - +$("#edStart").value;
-  $("#edLenHint").textContent = len > 0 ? `Clip length: ${len.toFixed(1)}s` : "End time must be greater than start.";
+  const badge = $("#edLenBadge");
+  if (badge) badge.textContent = len > 0 ? `${len.toFixed(1)}s` : "0.0s";
+  $("#edLenHint").textContent = len > 0 ? `Clip duration: ${len.toFixed(1)}s` : "End time must be greater than start.";
 }
+
+const DEFAULT_LOGO_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 50"><rect width="160" height="50" rx="8" fill="%232563eb"/><text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle" fill="%23ffffff" font-family="system-ui,sans-serif" font-weight="800" font-size="16">ASG CLIPPING</text></svg>`;
+
+function updateLogoVisuals() {
+  const el = $("#edLogoDraggable");
+  const imgEl = $("#edLogoImg");
+  const wrap = $("#edVideoWrap");
+  const statusEl = $("#edLogoStatus");
+  const removeBtn = $("#edBtnRemoveLogo");
+  const coordsBadge = $("#edLogoCoordsBadge");
+
+  if (!el || !wrap) return;
+
+  if (currentLogo.disabled) {
+    el.hidden = true;
+    if (removeBtn) removeBtn.hidden = true;
+    if (statusEl) statusEl.textContent = "Logo disabled (clean video)";
+    if (coordsBadge) coordsBadge.textContent = "Disabled (No logo placed)";
+    return;
+  }
+
+  el.hidden = false;
+  if (removeBtn) removeBtn.hidden = false;
+
+  if (currentLogo.file) {
+    if (imgEl && (!imgEl.src || !imgEl.src.includes(currentLogo.file))) {
+      imgEl.src = `/media/${editing?.job}/${currentLogo.file}`;
+    }
+    if (statusEl) statusEl.innerHTML = `<span style="color:#059669; font-weight:700;">✓ Channel Logo Active:</span> ${currentLogo.file}`;
+  } else {
+    if (imgEl && (!imgEl.src || !imgEl.src.startsWith("data:image/svg+xml"))) {
+      imgEl.src = DEFAULT_LOGO_SVG;
+    }
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--brand); font-weight:600;">Sample Preview:</span> Upload your custom image below`;
+  }
+
+  el.style.width = `${currentLogo.sizePct}%`;
+  el.style.opacity = currentLogo.opacity;
+
+  const wrapRect = wrap.getBoundingClientRect();
+  const maxL = Math.max(0, wrapRect.width - (el.offsetWidth || wrapRect.width * (currentLogo.sizePct / 100)));
+  const maxT = Math.max(0, wrapRect.height - (el.offsetHeight || wrapRect.height * 0.12));
+  const leftPx = (maxL * currentLogo.xPct) / 100;
+  const topPx = (maxT * currentLogo.yPct) / 100;
+
+  el.style.left = `${leftPx}px`;
+  el.style.top = `${topPx}px`;
+
+  if (coordsBadge) {
+    coordsBadge.textContent = `X: ${Math.round(currentLogo.xPct)}%, Y: ${Math.round(currentLogo.yPct)}% (Drag freely)`;
+  }
+}
+
+function switchEdTab(tab) {
+  document.querySelectorAll(".ed-pill").forEach((p) => p.classList.toggle("active", p.dataset.edtab === tab));
+  document.querySelectorAll(".ed-tab-content").forEach((c) => c.classList.toggle("active", c.id === `edtab-${tab}`));
+  setTimeout(updateLogoVisuals, 30);
+}
+
 async function loadTranscript() {
   if (!editing) return;
   const start = +$("#edStart").value, end = +$("#edEnd").value;
@@ -2493,24 +3040,234 @@ async function loadTranscript() {
     $("#edText").value = t.text;
   } catch (err) { $("#ederr").textContent = err.message; }
 }
+
 function openEdit(jobId, index) {
   const job = jobs.find((j) => j.id === jobId);
   const c = job && job.clips[index];
   if (!c) return;
-  editing = { job: jobId, index, video: c.video };
+  editing = { job: jobId, index, video: c.video, origClip: c, origJob: job };
   $("#edWhich").textContent = `· clip ${index + 1}`;
   $("#edTitle").value = c.title || "";
   $("#edStart").value = c.start;
   $("#edEnd").value = c.end;
   $("#edText").value = c.text || "";
+  $("#edHook").value = c.hook || "";
+  $("#edAspect").value = c.aspect || job.options?.aspect || "9:16";
+  $("#edLayout").value = c.layout || job.options?.layout || "auto";
+  $("#edStyle").value = c.style || job.options?.style || "yellow";
+  $("#edHighlight").checked = c.highlight !== undefined ? c.highlight : (job.options?.highlight_keywords || false);
+  $("#edEmoji").checked = c.emoji !== undefined ? c.emoji : (job.options?.emoji || false);
   $("#ederr").textContent = "";
+
+  // Logo setup
+  currentLogo = {
+    file: c.logo_file || job.logo_file || null,
+    xPct: c.logo_x !== undefined ? c.logo_x : 85.0,
+    yPct: c.logo_y !== undefined ? c.logo_y : 8.0,
+    sizePct: c.logo_size !== undefined ? c.logo_size : 16.0,
+    opacity: c.logo_opacity !== undefined ? c.logo_opacity : 0.9,
+    disabled: false,
+  };
+
+  const imgEl = $("#edLogoImg");
+  if (imgEl && currentLogo.file) {
+    imgEl.src = `/media/${jobId}/${currentLogo.file}`;
+  }
+
+  const sizeSlider = $("#edLogoSize");
+  if (sizeSlider) {
+    sizeSlider.value = currentLogo.sizePct;
+    $("#edLogoSizeVal").textContent = `${currentLogo.sizePct}%`;
+  }
+  const opSlider = $("#edLogoOpacity");
+  if (opSlider) {
+    opSlider.value = Math.round(currentLogo.opacity * 100);
+    $("#edLogoOpacityVal").textContent = `${Math.round(currentLogo.opacity * 100)}%`;
+  }
+
+  const vid = $("#edVideoPreview");
+  if (vid) {
+    vid.src = c.video;
+    vid.currentTime = 0;
+  }
+  $("#edCurrentTime").textContent = "0.0s";
+
   updateLen();
+  setTimeout(updateLogoVisuals, 60);
+  switchEdTab("crop");
   $("#eddlg").showModal();
 }
+
 $("#edStart")?.addEventListener("input", updateLen);
 $("#edEnd")?.addEventListener("input", updateLen);
 $("#edReload")?.addEventListener("click", loadTranscript);
-$("#edCancel")?.addEventListener("click", () => $("#eddlg").close());
+$("#edCancel")?.addEventListener("click", () => {
+  const v = $("#edVideoPreview");
+  if (v) v.pause();
+  $("#eddlg").close();
+});
+$("#edCloseX")?.addEventListener("click", () => {
+  const v = $("#edVideoPreview");
+  if (v) v.pause();
+  $("#eddlg").close();
+});
+
+$("#edVideoPreview")?.addEventListener("timeupdate", () => {
+  const v = $("#edVideoPreview");
+  if (v) $("#edCurrentTime").textContent = `${v.currentTime.toFixed(1)}s`;
+});
+
+$("#edNudgeBack")?.addEventListener("click", () => {
+  const v = $("#edVideoPreview");
+  if (v) v.currentTime = Math.max(0, v.currentTime - 1);
+});
+$("#edNudgeFwd")?.addEventListener("click", () => {
+  const v = $("#edVideoPreview");
+  if (v) v.currentTime = Math.min(v.duration || 9999, v.currentTime + 1);
+});
+$("#edSetStartBtn")?.addEventListener("click", () => {
+  const v = $("#edVideoPreview");
+  if (!v || !editing) return;
+  const newStart = Math.max(0, +(editing.origClip.start + v.currentTime).toFixed(1));
+  $("#edStart").value = newStart;
+  updateLen();
+  toast(`Start set to ${newStart}s`);
+});
+$("#edSetEndBtn")?.addEventListener("click", () => {
+  const v = $("#edVideoPreview");
+  if (!v || !editing) return;
+  const newEnd = Math.max(+$("#edStart").value + 1, +(editing.origClip.start + v.currentTime).toFixed(1));
+  $("#edEnd").value = newEnd;
+  updateLen();
+  toast(`End set to ${newEnd}s`);
+});
+
+document.querySelectorAll(".emoji-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const emoji = btn.dataset.emoji;
+    const hookInput = $("#edHook");
+    if (document.activeElement === $("#edText")) {
+      const ta = $("#edText");
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      ta.value = ta.value.substring(0, s) + emoji + ta.value.substring(e);
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = s + emoji.length;
+    } else {
+      hookInput.value = (hookInput.value + " " + emoji).trim();
+      hookInput.focus();
+    }
+    toast(`Added ${emoji}`);
+  });
+});
+
+document.querySelectorAll(".ed-pill").forEach((pill) => {
+  pill.addEventListener("click", () => switchEdTab(pill.dataset.edtab));
+});
+
+// Logo Draggable Pointer Handlers
+const logoEl = $("#edLogoDraggable");
+logoEl?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  isDraggingLogo = true;
+  const wrap = $("#edVideoWrap").getBoundingClientRect();
+  const el = logoEl.getBoundingClientRect();
+  logoDragStart = {
+    startX: e.clientX,
+    startY: e.clientY,
+    initLeft: el.left - wrap.left,
+    initTop: el.top - wrap.top,
+    wrapW: wrap.width,
+    wrapH: wrap.height,
+    elW: el.width,
+    elH: el.height,
+  };
+  window.addEventListener("pointermove", onLogoPointerMove);
+  window.addEventListener("pointerup", onLogoPointerUp);
+});
+
+function onLogoPointerMove(e) {
+  if (!isDraggingLogo) return;
+  const deltaX = e.clientX - logoDragStart.startX;
+  const deltaY = e.clientY - logoDragStart.startY;
+  const maxL = Math.max(1, logoDragStart.wrapW - logoDragStart.elW);
+  const maxT = Math.max(1, logoDragStart.wrapH - logoDragStart.elH);
+  const newL = Math.max(0, Math.min(maxL, logoDragStart.initLeft + deltaX));
+  const newT = Math.max(0, Math.min(maxT, logoDragStart.initTop + deltaY));
+  logoEl.style.left = `${newL}px`;
+  logoEl.style.top = `${newT}px`;
+  currentLogo.xPct = (newL / maxL) * 100;
+  currentLogo.yPct = (newT / maxT) * 100;
+  $("#edLogoCoordsBadge").textContent = `X: ${Math.round(currentLogo.xPct)}%, Y: ${Math.round(currentLogo.yPct)}% (Drag freely)`;
+}
+
+function onLogoPointerUp() {
+  if (isDraggingLogo) {
+    isDraggingLogo = false;
+    window.removeEventListener("pointermove", onLogoPointerMove);
+    window.removeEventListener("pointerup", onLogoPointerUp);
+  }
+}
+
+// Logo upload and removal
+$("#edBtnUploadLogo")?.addEventListener("click", () => {
+  $("#edLogoFile")?.click();
+});
+
+$("#edLogoFile")?.addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  if (!file || !editing) return;
+  const formData = new FormData();
+  formData.append("file", file);
+  $("#edLogoStatus").textContent = "Uploading logo…";
+  try {
+    const res = await api(`/api/jobs/${editing.job}/logo`, { method: "POST", body: formData });
+    currentLogo.file = res.logo_file;
+    currentLogo.disabled = false;
+    const img = $("#edLogoImg");
+    if (img) img.src = res.logo_url;
+    $("#edLogoStatus").innerHTML = `<span style="color:#059669; font-weight:700;">✓ Channel Logo Active:</span> ${res.logo_file}`;
+    updateLogoVisuals();
+    toast("✓ Logo uploaded! Click & drag it anywhere on the video preview.");
+  } catch (err) {
+    $("#ederr").textContent = err.message;
+    $("#edLogoStatus").textContent = "Upload failed";
+  }
+});
+
+$("#edBtnRemoveLogo")?.addEventListener("click", () => {
+  currentLogo.file = null;
+  currentLogo.disabled = true;
+  updateLogoVisuals();
+  toast("Logo removed.");
+});
+
+// Quick snapping presets (helper buttons)
+document.querySelectorAll("[data-coord]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentLogo.disabled = false;
+    const p = btn.dataset.coord;
+    if (p === "top-right") { currentLogo.xPct = 85; currentLogo.yPct = 8; }
+    else if (p === "top-left") { currentLogo.xPct = 8; currentLogo.yPct = 8; }
+    else if (p === "center") { currentLogo.xPct = 50; currentLogo.yPct = 50; }
+    else if (p === "bottom-right") { currentLogo.xPct = 85; currentLogo.yPct = 88; }
+    else if (p === "bottom-left") { currentLogo.xPct = 8; currentLogo.yPct = 88; }
+    updateLogoVisuals();
+    toast(`Logo positioned: ${p.replace("-", " ")}`);
+  });
+});
+
+// Size & opacity sliders
+$("#edLogoSize")?.addEventListener("input", (e) => {
+  currentLogo.sizePct = +e.target.value;
+  $("#edLogoSizeVal").textContent = `${currentLogo.sizePct}%`;
+  updateLogoVisuals();
+});
+
+$("#edLogoOpacity")?.addEventListener("input", (e) => {
+  currentLogo.opacity = +e.target.value / 100;
+  $("#edLogoOpacityVal").textContent = `${e.target.value}%`;
+  updateLogoVisuals();
+});
 
 $("#edform")?.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -2518,17 +3275,38 @@ $("#edform")?.addEventListener("submit", async (e) => {
   const start = +$("#edStart").value, end = +$("#edEnd").value;
   if (!(end > start)) { $("#ederr").textContent = "End must be after start."; return; }
   const btn = $("#edSubmit");
-  btn.disabled = true; btn.textContent = "Rendering…";
+  btn.disabled = true;
+  btn.innerHTML = `<svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> <span>Rendering Edited Video…</span>`;
   try {
     await api(`/api/jobs/${editing.job}/clips/${editing.index}/edit`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ start, end, title: $("#edTitle").value, text: $("#edText").value }),
+      body: JSON.stringify({
+        start, end,
+        title: $("#edTitle").value,
+        text: $("#edText").value,
+        hook: $("#edHook").value,
+        aspect: $("#edAspect").value,
+        layout: $("#edLayout").value,
+        style: $("#edStyle").value,
+        logo_file: currentLogo.file,
+        logo_x: currentLogo.xPct,
+        logo_y: currentLogo.yPct,
+        logo_size: currentLogo.sizePct,
+        logo_opacity: currentLogo.opacity,
+        highlight: $("#edHighlight").checked,
+        emoji: $("#edEmoji").checked,
+      }),
     });
+    const v = $("#edVideoPreview");
+    if (v) v.pause();
     $("#eddlg").close();
-    toast("Clip updated and re-rendered.");
+    toast("✓ Video successfully edited & re-rendered!");
     await refresh();
   } catch (err) { $("#ederr").textContent = err.message; }
-  finally { btn.disabled = false; btn.textContent = "Save and re-render"; }
+  finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg> <span>Save &amp; Re-render Edited Video</span>`;
+  }
 });
 
 // ---------- ⋯ More Options Dropdown ----------
@@ -2550,7 +3328,7 @@ function openMenu(btn, jobId, index) {
     `<button role="menuitem" type="button" data-act="copy">${MI.copy}Copy title, tags and hook</button>`,
     c.youtube?.url ? `<button role="menuitem" type="button" data-act="open">${MI.open}Open on YouTube</button>` : "",
     `<button role="menuitem" type="button" data-act="post">${MI.yt}Post to YouTube</button>`,
-    `<button role="menuitem" type="button" data-act="edit">${MI.edit}Edit start, end and captions</button>`,
+    `<button role="menuitem" type="button" data-act="edit" style="color:var(--brand);font-weight:600">${MI.edit}Edit video (crop, emojis, logo &amp; text)</button>`,
     `<div class="menu-sep" role="separator"></div>`,
     `<button role="menuitem" type="button" data-act="delete" class="danger">${MI.del}Delete this clip</button>`,
   ].join("");
@@ -2601,6 +3379,12 @@ document.addEventListener("click", async (e) => {
   if (post) {
     const [jobId, i] = post.dataset.post.split(":");
     openPost(jobId, +i);
+    return;
+  }
+  const ed = e.target.closest("[data-edit]");
+  if (ed) {
+    const [jobId, i] = ed.dataset.edit.split(":");
+    openEdit(jobId, +i);
     return;
   }
   const exp = e.target.closest("[data-expand]");

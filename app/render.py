@@ -351,6 +351,8 @@ def build_ass(
     hook_top: int | None = None,
     highlight: bool = False,
     emoji: bool = False,
+    watermark: str | None = None,
+    watermark_pos: str = "top-right",
 ) -> str:
     """`hook_top`: y of a panel seam to centre the hook banner on (split layout),
     instead of its usual place near the top of the frame.
@@ -383,6 +385,25 @@ Style: Hook,Arial Black,{hook_size},&H00101010,&H00101010,&H00FFFFFF,&H00FFFFFF,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     lines: list[str] = []
+    if watermark:
+        wm_align = 9
+        wm_lr = round(w * 0.05)
+        wm_v = round(h * 0.04)
+        if watermark_pos == "top-left":
+            wm_align = 7
+        elif watermark_pos == "bottom-right":
+            wm_align = 3
+            wm_v = round(h * 0.06)
+        elif watermark_pos == "bottom-left":
+            wm_align = 1
+            wm_v = round(h * 0.06)
+        wm_size = max(24, round(36 * k))
+        head = head.replace(
+            "[Events]\n",
+            f"Style: Watermark,Arial Black,{wm_size},&H30FFFFFF,&H30FFFFFF,&H60000000,&H90000000,-1,0,0,0,100,100,0,0,1,2,1,{wm_align},{wm_lr},{wm_lr},{wm_v},1\n\n[Events]\n"
+        )
+        lines.append(f"Dialogue: 2,{_ass_time(0)},{_ass_time(clip_len)},Watermark,,0,0,0,,{_esc(watermark)}")
+
     if hook:
         text = _esc(hook.upper())
         lines.append(
@@ -459,6 +480,13 @@ def render_clip(
     keep: list[tuple[float, float]] | None = None,
     highlight: bool = False,
     emoji: bool = False,
+    watermark: str | None = None,
+    watermark_pos: str = "top-right",
+    logo_file: Path | None = None,
+    logo_x: float = 85.0,
+    logo_y: float = 8.0,
+    logo_size: float = 16.0,
+    logo_opacity: float = 0.9,
 ) -> dict:
     """Writes <name>.mp4 and <name>.jpg into out_dir. Returns what layout was used.
     `facecam` skips detection (used by tests and by a forced split).
@@ -521,9 +549,13 @@ def render_clip(
         if (FONTS_DIR / f).exists():
             shutil.copyfile(FONTS_DIR / f, fonts / f)
     ass_f = f"ass={ass_name}:fontsdir=fonts"
+    extra_ass = {}
+    if watermark:
+        extra_ass["watermark"] = watermark
+        extra_ass["watermark_pos"] = watermark_pos
     (out_dir / ass_name).write_text(
         build_ass(cap_words, cap_start, out_len, style, hook, size=(W, H), hook_top=(split or pod)["top_h"] if (split or pod) else None,
-                  highlight=highlight, emoji=emoji),
+                  highlight=highlight, emoji=emoji, **extra_ass),
         encoding="utf-8",
     )
 
@@ -576,9 +608,23 @@ def render_clip(
             graph += f";[0:a:{i}]aselect='{expr}',asetpts=N/SR/TB[a{i}]"
         audio_maps = [f"[a{i}]" for i in range(tracks)]
 
+    extra_inputs = []
+    if logo_file and Path(logo_file).exists():
+        extra_inputs = ["-i", str(logo_file)]
+        logo_w = max(40, round(W * (max(4.0, min(60.0, logo_size)) / 100.0)))
+        op = max(0.05, min(1.0, logo_opacity))
+        lx = max(0.0, min(100.0, logo_x)) / 100.0
+        ly = max(0.0, min(100.0, logo_y)) / 100.0
+        logo_filter = (
+            f";[1:v]scale={logo_w}:-1,format=rgba,colorchannelmixer=aa={op:.2f}[logo];"
+            f"[v_framed][logo]overlay=x='(W-w)*{lx:.4f}':y='(H-h)*{ly:.4f}',{ass_f}[v]"
+        )
+        graph = graph.replace(f",{ass_f}[v]", f"[v_framed]{logo_filter}")
+
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
         "-ss", f"{start:.3f}", "-t", f"{clip_len:.3f}", "-i", str(video),
+        *extra_inputs,
         "-filter_complex", graph, "-map", "[v]", *[x for m in audio_maps for x in ("-map", m)],
         "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", f"{name}.mp4",

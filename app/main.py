@@ -554,6 +554,47 @@ class ClipEdit(BaseModel):
     end: float = Field(allow_inf_nan=False)
     title: str | None = Field(default=None, max_length=500)
     text: str | None = Field(default=None, max_length=5000)  # caption text; None = as spoken
+    hook: str | None = Field(default=None, max_length=500)
+    aspect: str | None = Field(default=None, max_length=20)
+    layout: str | None = Field(default=None, max_length=20)
+    style: str | None = Field(default=None, max_length=30)
+    watermark: str | None = Field(default=None, max_length=200)
+    watermark_pos: str | None = Field(default="top-right", max_length=30)
+    logo_file: str | None = Field(default=None, max_length=200)
+    logo_x: float = Field(default=85.0, ge=0.0, le=100.0)
+    logo_y: float = Field(default=8.0, ge=0.0, le=100.0)
+    logo_size: float = Field(default=16.0, ge=4.0, le=60.0)
+    logo_opacity: float = Field(default=0.9, ge=0.1, le=1.0)
+    highlight: bool | None = None
+    emoji: bool | None = None
+
+
+@app.post("/api/jobs/{job_id}/logo")
+async def upload_job_logo(job_id: str, file: UploadFile = File(...)) -> dict:
+    with _lock:
+        if job_id not in _jobs:
+            raise HTTPException(404, "Job not found.")
+    data = await file.read(10 * 1024 * 1024 + 1)
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(413, "Logo image is too large (max 10 MB).")
+    ext = Path(file.filename or "logo.png").suffix.lower()
+    if ext not in (".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"):
+        ext = ".png"
+    d = _job_dir(job_id)
+    logo_name = f"logo{ext}"
+    target = d / logo_name
+    target.write_bytes(data)
+    with _lock:
+        job = _jobs.get(job_id)
+        if job:
+            job["logo_file"] = logo_name
+            job["logo_url"] = f"/media/{job_id}/{logo_name}"
+            _save(job)
+    return {
+        "ok": True,
+        "logo_file": logo_name,
+        "logo_url": f"/media/{job_id}/{logo_name}?t={int(time.time())}",
+    }
 
 
 @app.post("/api/jobs/{job_id}/clips/{index}/edit")
@@ -576,16 +617,42 @@ def edit_clip(job_id: str, index: int, req: ClipEdit) -> dict:
         if req.end - req.start < 1:
             raise HTTPException(400, "A clip must be at least 1 second long.")
         text = req.text.strip() if req.text is not None else None
+        options = dict(job.get("options") or {})
+        hook = req.hook.strip() if req.hook is not None else clip.get("hook")
+        aspect = req.aspect or clip.get("aspect") or options.get("aspect", "9:16")
+        layout = req.layout or clip.get("layout") or options.get("layout", "auto")
+        style = req.style or clip.get("style") or options.get("style", "yellow")
+        watermark = req.watermark.strip() if req.watermark is not None else clip.get("watermark")
+        watermark_pos = req.watermark_pos or clip.get("watermark_pos", "top-right")
+        logo_file = req.logo_file.strip() if req.logo_file else clip.get("logo_file")
+        logo_x = req.logo_x if req.logo_x is not None else clip.get("logo_x", 85.0)
+        logo_y = req.logo_y if req.logo_y is not None else clip.get("logo_y", 8.0)
+        logo_size = req.logo_size if req.logo_size is not None else clip.get("logo_size", 16.0)
+        logo_opacity = req.logo_opacity if req.logo_opacity is not None else clip.get("logo_opacity", 0.9)
+
         rerender = (
             abs(req.start - clip.get("start", 0)) > 0.005 or abs(req.end - clip.get("end", 0)) > 0.005
             or (text is not None and text != clip.get("text"))
             or (text is None and clip.get("text") is not None)  # back to the spoken captions
+            or (req.aspect is not None and req.aspect != clip.get("aspect", options.get("aspect", "9:16")))
+            or (req.layout is not None and req.layout != clip.get("layout", options.get("layout", "auto")))
+            or (req.style is not None and req.style != clip.get("style", options.get("style", "yellow")))
+            or (req.hook is not None and req.hook != clip.get("hook", ""))
+            or (req.watermark is not None and req.watermark != clip.get("watermark", ""))
+            or (req.highlight is not None and req.highlight != clip.get("highlight", options.get("highlight_keywords", False)))
+            or (req.emoji is not None and req.emoji != clip.get("emoji", options.get("emoji", False)))
+            or (req.logo_file is not None and req.logo_file != clip.get("logo_file"))
+            or (logo_file and (
+                abs(logo_x - clip.get("logo_x", -1)) > 0.5
+                or abs(logo_y - clip.get("logo_y", -1)) > 0.5
+                or abs(logo_size - clip.get("logo_size", -1)) > 0.5
+                or abs(logo_opacity - clip.get("logo_opacity", -1)) > 0.05
+            ))
         )
         if rerender:
             if job_id in _editing:
                 raise HTTPException(409, "A clip from this video is already being re-rendered.")
             _editing.add(job_id)
-        options = dict(job.get("options") or {})
     orig_video = clip.get("video")
     changes: dict = {}
     old: list = []
@@ -609,15 +676,38 @@ def edit_clip(job_id: str, index: int, req: ClipEdit) -> dict:
             # renderers: pass them only when the job asked for them.
             fx = {arg: True for opt, arg in (("highlight_keywords", "highlight"), ("emoji", "emoji"))
                   if options.get(opt) is True}
+            if req.highlight is not None:
+                if req.highlight:
+                    fx["highlight"] = True
+                else:
+                    fx.pop("highlight", None)
+            if req.emoji is not None:
+                if req.emoji:
+                    fx["emoji"] = True
+                else:
+                    fx.pop("emoji", None)
+
+            extra_render = {}
+            if watermark:
+                extra_render["watermark"] = watermark
+                extra_render["watermark_pos"] = watermark_pos
+            if logo_file:
+                lp = d / logo_file
+                if lp.exists():
+                    extra_render["logo_file"] = lp
+                    extra_render["logo_x"] = logo_x
+                    extra_render["logo_y"] = logo_y
+                    extra_render["logo_size"] = logo_size
+                    extra_render["logo_opacity"] = logo_opacity
 
             def encode() -> dict:
                 # Cuts follow what was actually said (pauses, "uh"/"um"), not the edited caption text.
                 keep = trim.plan(video, spoken, req.start, req.end) if options.get("trim_pauses") else None
                 return render.render_clip(
                     video, words, req.start, req.end, d, name,
-                    style=options.get("style", "yellow"), layout=options.get("layout", "auto"),
-                    hook=clip.get("hook") if options.get("hook", True) else None,
-                    aspect=options.get("aspect", "9:16"), keep=keep, **fx,
+                    style=style, layout=layout,
+                    hook=hook if (options.get("hook", True) or hook) else None,
+                    aspect=aspect, keep=keep, **fx, **extra_render,
                 )
 
             # Same single worker as the pipeline, so only one encode runs at a time. _lock is
@@ -628,7 +718,12 @@ def edit_clip(job_id: str, index: int, req: ClipEdit) -> dict:
                 "start": round(req.start, 2), "end": round(req.end, 2),
                 "length": round(info.get("length", req.end - req.start), 1),
                 "video": f"/media/{job_id}/{name}.mp4", "thumb": f"/media/{job_id}/{name}.jpg",
-                "layout": info["layout"], "text": text,  # None: captions follow the speech again
+                "layout": info.get("layout", layout), "text": text,  # None: captions follow the speech again
+                "aspect": aspect, "style": style, "hook": hook,
+                "watermark": watermark, "watermark_pos": watermark_pos,
+                "logo_file": logo_file, "logo_x": round(logo_x, 1), "logo_y": round(logo_y, 1),
+                "logo_size": round(logo_size, 1), "logo_opacity": round(logo_opacity, 2),
+                "highlight": fx.get("highlight", False), "emoji": fx.get("emoji", False),
             }
         if req.title is not None and req.title.strip():
             changes["title"] = req.title.strip()

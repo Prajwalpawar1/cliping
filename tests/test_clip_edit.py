@@ -329,3 +329,60 @@ def test_clearing_a_caption_override_rerenders(client, renders):
     res = _edit(client, jid, start=10.0, end=20.0, text=None)
     assert res.status_code == 200 and len(renders) == 1
     assert "text" not in res.json()["clips"][0]
+
+
+def test_edit_with_aspect_layout_style_watermark_hook(client, renders):
+    jid = _job(client)
+    res = _edit(
+        client, jid, start=12.0, end=25.0,
+        hook="OMG LOOK 🔥", aspect="1:1", layout="podcast",
+        style="comic", watermark="@ViralASG", highlight=True, emoji=True
+    )
+    assert res.status_code == 200, res.text
+    clip = res.json()["clips"][0]
+    assert clip["hook"] == "OMG LOOK 🔥"
+    assert clip["aspect"] == "1:1"
+    assert clip["layout"] == "fit"  # returned by fake_render
+    assert clip["style"] == "comic"
+    assert clip["watermark"] == "@ViralASG"
+    assert clip["highlight"] is True
+    assert clip["emoji"] is True
+    call = renders[0]
+    assert call["hook"] == "OMG LOOK 🔥"
+    assert call["aspect"] == "1:1"
+    assert call["layout"] == "podcast"
+    assert call["style"] == "comic"
+    assert call["watermark"] == "@ViralASG"
+    assert call["highlight"] is True
+    assert call["emoji"] is True
+
+
+def test_upload_logo_and_apply_position_anywhere(client, renders):
+    jid = _job(client)
+    # Upload logo image
+    res = client.post(f"/api/jobs/{jid}/logo", files={"file": ("my_logo.png", b"\x89PNG\r\n\x1a\nfake", "image/png")})
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["ok"] is True
+    assert data["logo_file"] == "logo.png"
+
+    # Edit clip with logo placed at arbitrary x=42.5%, y=78.2%
+    res_edit = _edit(
+        client, jid, start=12.0, end=25.0,
+        logo_file="logo.png", logo_x=42.5, logo_y=78.2, logo_size=20.0, logo_opacity=0.85
+    )
+    assert res_edit.status_code == 200, res_edit.text
+    clip = res_edit.json()["clips"][0]
+    assert clip["logo_file"] == "logo.png"
+    assert clip["logo_x"] == 42.5
+    assert clip["logo_y"] == 78.2
+    assert clip["logo_size"] == 20.0
+    assert clip["logo_opacity"] == 0.85
+
+    call = renders[0]
+    assert call["logo_x"] == 42.5
+    assert call["logo_y"] == 78.2
+    assert call["logo_size"] == 20.0
+    assert call["logo_opacity"] == 0.85
+
+
