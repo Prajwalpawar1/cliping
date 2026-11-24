@@ -260,10 +260,12 @@ def _service():
 
 MAX_RETRIES = 10
 _RETRY_STATUS = (500, 502, 503, 504)
-_CHUNK = 8 * 1024 * 1024  # multiple of 256 KB, as resumable uploads require
+_CHUNK = 1024 * 1024  # 1 MB chunks (multiple of 256 KB) for smooth progress updates
 
 _REASONS = {
-    "uploadLimitExceeded": "Your YouTube channel has hit its upload limit for now. Try again later.",
+    "uploadLimitExceeded": "YouTube's daily upload limit for this channel was reached (Google error: uploadLimitExceeded). "
+                           "YouTube restricts daily uploads/Shorts until Advanced Features are enabled in YouTube Studio "
+                           "(Settings > Channel > Feature eligibility). The limit automatically resets in 24 hours.",
     "quotaExceeded": "YouTube's daily limit of 100 uploads per day for your Google app was reached. "
                      "Try again tomorrow.",
     "invalidPublishAt": "YouTube rejected the schedule time. Pick a time further in the future.",

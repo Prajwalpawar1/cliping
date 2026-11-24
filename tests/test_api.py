@@ -18,7 +18,7 @@ def client(monkeypatch):
 
 def test_status_reports_styles(client):
     data = client.get("/api/status").json()
-    assert set(data["styles"]) == {"yellow", "green", "beast", "anton", "bebas", "clean", "reveal"}
+    assert set(data["styles"]) == {"yellow", "green", "beast", "anton", "bebas", "clean", "reveal", "none"}
     look = data["style_looks"]["yellow"]
     assert look["font"] == "Arial Black" and look["upper"] is True and look["active"].startswith("#")
     assert "missing" in data
@@ -110,3 +110,14 @@ def test_cannot_delete_clip_while_any_clip_uploads(client):
     main._jobs[job_id]["clips"][2]["youtube"] = {"status": "uploading", "progress": 10}
     assert client.delete(f"/api/jobs/{job_id}/clips/0").status_code == 409
     assert len(main._jobs[job_id]["clips"]) == 3
+
+
+def test_toggle_preserve_clip(client):
+    job_id, _ = _finished_job_with_clips(client, 1)
+    # By default, score >= 80 is preserved or defaults to False if score is low
+    res = client.post(f"/api/jobs/{job_id}/clips/0/preserve")
+    assert res.status_code == 200
+    p1 = res.json()["preserved"]
+    res2 = client.post(f"/api/jobs/{job_id}/clips/0/preserve")
+    assert res2.status_code == 200
+    assert res2.json()["preserved"] is not p1

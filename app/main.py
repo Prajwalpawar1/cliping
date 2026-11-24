@@ -25,7 +25,7 @@ from starlette.background import BackgroundTask
 
 from . import config, render, selector, source, trim, youtube
 
-app = FastAPI(title="Clipsmith")
+app = FastAPI(title="ASG Cliper AI")
 
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"} | {
@@ -104,8 +104,19 @@ def _save(job: dict) -> None:
     d = _job_dir(job["id"])
     d.mkdir(parents=True, exist_ok=True)
     tmp = d / "job.json.tmp"
-    tmp.write_text(json.dumps(job, ensure_ascii=False, indent=1), encoding="utf-8")
-    tmp.replace(d / "job.json")
+    target = d / "job.json"
+    content = json.dumps(job, ensure_ascii=False, indent=1)
+    tmp.write_text(content, encoding="utf-8")
+    for attempt in range(5):
+        try:
+            tmp.replace(target)
+            return
+        except OSError:
+            if attempt == 4:
+                target.write_text(content, encoding="utf-8")
+                tmp.unlink(missing_ok=True)
+                return
+            time.sleep(0.05 * (attempt + 1))
 
 
 def _update(job_id: str, **fields) -> None:
@@ -255,6 +266,7 @@ def _run(job_id: str, req: JobRequest) -> None:
                     "thumb": f"/media/{job_id}/{name}.jpg",
                     "layout": info["layout"],
                     "aspect": req.aspect,
+                    "preserved": bool(clip.score >= 80),
                 }
             )
             _update(job_id, clips=list(done))
@@ -284,7 +296,7 @@ def status() -> dict:
         "styles": {k: v["label"] for k, v in render.STYLES.items()},
         "style_looks": {
             k: {"font": v["font"], "active": v["css"], "upper": v["upper"], "width": v["cw"],
-                "reveal": bool(v.get("reveal"))} for k, v in render.STYLES.items()
+                "reveal": bool(v.get("reveal")), "none": bool(v.get("none"))} for k, v in render.STYLES.items()
         },
     }
 
@@ -462,6 +474,22 @@ def delete_clip(job_id: str, index: int) -> dict:
         if url:
             (d / Path(url).name).unlink(missing_ok=True)
     return {"ok": True}
+
+
+@app.post("/api/jobs/{job_id}/clips/{index}/preserve")
+def toggle_preserve_clip(job_id: str, index: int) -> dict:
+    with _lock:
+        job = _jobs.get(job_id)
+        if not job:
+            raise HTTPException(404, "Job not found.")
+        clips = job.get("clips") or []
+        if not 0 <= index < len(clips):
+            raise HTTPException(404, "Clip not found.")
+        clip = clips[index]
+        curr = clip.get("preserved", (clip.get("score") or 0) >= 80)
+        clip["preserved"] = not curr
+        _save(job)
+        return {"ok": True, "preserved": clip["preserved"]}
 
 
 # ---------- Clip editor ----------

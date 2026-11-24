@@ -46,6 +46,9 @@ STYLES = {
     "reveal": {"label": "Build-up", "font": "Poppins ExtraBold", "file": "Poppins-ExtraBold.ttf", "size": 112,
                "active": "&H00E1FF&", "css": "#FFE100", "upper": False, "cw": 0.28, "outline": 4,
                "reveal": True, "v": 0.40},
+    "none": {"label": "No Captions", "font": "Arial", "file": None, "size": 0,
+             "active": "&H00FFFFFF&", "css": "transparent", "upper": False, "cw": 0.3, "outline": 0,
+             "none": True},
 }
 
 
@@ -387,36 +390,37 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             f"{{\\fad(120,250)}}{text}"
         )
 
-    key_c = fx.key_colour(st["active"])
-    for group in _groups(words):
-        keys = set(fx.pick_keywords([x.text for x in group])) if highlight else set()
-        emo_at, emo = None, None
-        if highlight and emoji:  # at most one emoji per group, keyword first
-            for j in sorted(range(len(group)), key=lambda j: j not in keys):
-                emo = fx.emoji_for(group[j].text)
-                if emo:
-                    emo_at = j
-                    break
-        for i, w in enumerate(group):
-            s = w.start - clip_start
-            e = (group[i + 1].start if i + 1 < len(group) else w.end) - clip_start
-            e = min(e, clip_len)
-            if e <= 0 or s >= clip_len or e - s < 0.02:
-                continue
-            parts = []
-            for j, x in enumerate(group):
-                if st.get("reveal") and j > i:
-                    break  # build-up style: words not spoken yet aren't shown
-                tok = _esc(x.text.upper() if st["upper"] else x.text)
-                if highlight:
-                    tok = _fx_word(tok, active=j == i, key=j in keys, colour=st["active"], key_colour=key_c)
-                    parts.append(f"{tok} {emo}" if j == emo_at else tok)
-                elif j == i:
-                    parts.append(f"{{\\c{st['active']}\\fscx108\\fscy108}}{tok}{{\\c&HFFFFFF&\\fscx100\\fscy100}}")
-                else:
-                    parts.append(tok)
-            pop = "{\\fscx86\\fscy86\\t(0,90,\\fscx100\\fscy100)}" if i == 0 else ""
-            lines.append(f"Dialogue: 0,{_ass_time(s)},{_ass_time(e)},Cap,,0,0,0,,{pop}{' '.join(parts)}")
+    if style_key != "none":
+        key_c = fx.key_colour(st["active"])
+        for group in _groups(words):
+            keys = set(fx.pick_keywords([x.text for x in group])) if highlight else set()
+            emo_at, emo = None, None
+            if highlight and emoji:  # at most one emoji per group, keyword first
+                for j in sorted(range(len(group)), key=lambda j: j not in keys):
+                    emo = fx.emoji_for(group[j].text)
+                    if emo:
+                        emo_at = j
+                        break
+            for i, w in enumerate(group):
+                s = w.start - clip_start
+                e = (group[i + 1].start if i + 1 < len(group) else w.end) - clip_start
+                e = min(e, clip_len)
+                if e <= 0 or s >= clip_len or e - s < 0.02:
+                    continue
+                parts = []
+                for j, x in enumerate(group):
+                    if st.get("reveal") and j > i:
+                        break  # build-up style: words not spoken yet aren't shown
+                    tok = _esc(x.text.upper() if st["upper"] else x.text)
+                    if highlight:
+                        tok = _fx_word(tok, active=j == i, key=j in keys, colour=st["active"], key_colour=key_c)
+                        parts.append(f"{tok} {emo}" if j == emo_at else tok)
+                    elif j == i:
+                        parts.append(f"{{\\c{st['active']}\\fscx108\\fscy108}}{tok}{{\\c&HFFFFFF&\\fscx100\\fscy100}}")
+                    else:
+                        parts.append(tok)
+                pop = "{\\fscx86\\fscy86\\t(0,90,\\fscx100\\fscy100)}" if i == 0 else ""
+                lines.append(f"Dialogue: 0,{_ass_time(s)},{_ass_time(e)},Cap,,0,0,0,,{pop}{' '.join(parts)}")
     return head + "\n".join(lines) + "\n"
 
 

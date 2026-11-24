@@ -16,3 +16,10 @@ def test_other_styles_still_show_the_whole_group():
     words = [Word("the", 0, 0.3), Word("first", 0.3, 0.6), Word("time", 0.6, 0.9)]
     first = next(ln for ln in render.build_ass(words, 0, 5, "yellow", None).splitlines() if ln.startswith("Dialogue: 0,"))
     assert "TIME" in first
+
+
+def test_no_caption_style_produces_no_caption_dialogue():
+    words = [Word("the", 0, 0.3), Word("first", 0.3, 0.6), Word("time", 0.6, 0.9)]
+    res = render.build_ass(words, 0, 5, "none", None)
+    caps = [ln for ln in res.splitlines() if ln.startswith("Dialogue: 0,")]
+    assert len(caps) == 0
