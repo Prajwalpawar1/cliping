@@ -10,7 +10,7 @@
 ![No GPU](https://img.shields.io/badge/GPU-not%20needed-brightgreen)
 [![GitHub stars](https://img.shields.io/github/stars/AbdulSamad94/clipsmith?style=social)](https://github.com/AbdulSamad94/clipsmith/stargazers)
 
-Paste a YouTube link. Clipsmith finds the best 30–60 second moments, crops them to vertical 9:16 around the speaker, burns in animated word-by-word captions, and ranks them by how likely they are to hold a viewer.
+Paste a YouTube link. ASG Clipping finds the best 30–60 second moments, crops them to vertical 9:16 around the speaker, burns in animated word-by-word captions, and ranks them by how likely they are to hold a viewer.
 
 - **Free and unlimited.** No credits, no monthly plan, no watermark, no clips that expire after 3 days.
 - **Runs offline.** Moment picking uses a local AI model (Qwen via Ollama). No API key, no account, your videos never leave your computer.
@@ -18,11 +18,11 @@ Paste a YouTube link. Clipsmith finds the best 30–60 second moments, crops the
 
 > Not affiliated with OpusClip. "OpusClip" is mentioned only to describe what this project is an alternative to.
 
-![Clipsmith screenshot](docs/ss.png)
+![ASG Clipping screenshot](docs/ss.png)
 
-## Clipsmith vs OpusClip
+## ASG Clipping vs OpusClip
 
-| | Clipsmith | OpusClip Free | OpusClip paid |
+| | ASG Clipping | OpusClip Free | OpusClip paid |
 |---|---|---|---|
 | Price | **Free forever** | $0 | from $15/month |
 | Clips per month | **Unlimited** | 60 credits | 150+ credits |
@@ -66,7 +66,7 @@ Node.js works instead of Deno if you already have it.
 ollama pull qwen3.5:4b
 ```
 
-### 3. Set up Clipsmith
+### 3. Set up ASG Clipping
 
 ```
 git clone https://github.com/AbdulSamad94/clipsmith.git
@@ -129,7 +129,7 @@ On a machine with more RAM or a GPU, try a bigger local model for better picks, 
 - [x] Keyword and emoji highlights in captions
 - [ ] Brand template (logo, fonts, colours)
 
-Contributions are welcome! **Designers especially:** UI/UX ideas are wanted, see [issue #24](https://github.com/AbdulSamad94/clipsmith/issues/24). See [CONTRIBUTING.md](CONTRIBUTING.md) and the [`good first issue`](https://github.com/AbdulSamad94/clipsmith/labels/good%20first%20issue) label. If Clipsmith saves you money, a ⭐ helps other people find it.
+Contributions are welcome! **Designers especially:** UI/UX ideas are wanted, see [issue #24](https://github.com/AbdulSamad94/clipsmith/issues/24). See [CONTRIBUTING.md](CONTRIBUTING.md) and the [`good first issue`](https://github.com/AbdulSamad94/clipsmith/labels/good%20first%20issue) label. If ASG Clipping saves you money, a ⭐ helps other people find it.
 
 ## Use responsibly
 
