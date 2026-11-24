@@ -567,6 +567,7 @@ class ClipEdit(BaseModel):
     logo_opacity: float = Field(default=0.9, ge=0.1, le=1.0)
     highlight: bool | None = None
     emoji: bool | None = None
+    rerender: bool | None = None
 
 
 @app.post("/api/jobs/{job_id}/logo")
@@ -630,25 +631,30 @@ def edit_clip(job_id: str, index: int, req: ClipEdit) -> dict:
         logo_size = req.logo_size if req.logo_size is not None else clip.get("logo_size", 16.0)
         logo_opacity = req.logo_opacity if req.logo_opacity is not None else clip.get("logo_opacity", 0.9)
 
-        rerender = (
-            abs(req.start - clip.get("start", 0)) > 0.005 or abs(req.end - clip.get("end", 0)) > 0.005
-            or (text is not None and text != clip.get("text"))
-            or (text is None and clip.get("text") is not None)  # back to the spoken captions
-            or (req.aspect is not None and req.aspect != clip.get("aspect", options.get("aspect", "9:16")))
-            or (req.layout is not None and req.layout != clip.get("layout", options.get("layout", "auto")))
-            or (req.style is not None and req.style != clip.get("style", options.get("style", "yellow")))
-            or (req.hook is not None and req.hook != clip.get("hook", ""))
-            or (req.watermark is not None and req.watermark != clip.get("watermark", ""))
-            or (req.highlight is not None and req.highlight != clip.get("highlight", options.get("highlight_keywords", False)))
-            or (req.emoji is not None and req.emoji != clip.get("emoji", options.get("emoji", False)))
-            or (req.logo_file is not None and req.logo_file != clip.get("logo_file"))
-            or (logo_file and (
-                abs(logo_x - clip.get("logo_x", -1)) > 0.5
-                or abs(logo_y - clip.get("logo_y", -1)) > 0.5
-                or abs(logo_size - clip.get("logo_size", -1)) > 0.5
-                or abs(logo_opacity - clip.get("logo_opacity", -1)) > 0.05
-            ))
-        )
+        if req.rerender is False:
+            rerender = False
+        elif req.rerender is True:
+            rerender = True
+        else:
+            rerender = (
+                abs(req.start - clip.get("start", 0)) > 0.005 or abs(req.end - clip.get("end", 0)) > 0.005
+                or (text is not None and text != clip.get("text"))
+                or (text is None and clip.get("text") is not None)  # back to the spoken captions
+                or (req.aspect is not None and req.aspect != clip.get("aspect", options.get("aspect", "9:16")))
+                or (req.layout is not None and req.layout != clip.get("layout", options.get("layout", "auto")))
+                or (req.style is not None and req.style != clip.get("style", options.get("style", "yellow")))
+                or (req.hook is not None and req.hook != clip.get("hook", ""))
+                or (req.watermark is not None and req.watermark != clip.get("watermark", ""))
+                or (req.highlight is not None and req.highlight != clip.get("highlight", options.get("highlight_keywords", False)))
+                or (req.emoji is not None and req.emoji != clip.get("emoji", options.get("emoji", False)))
+                or (req.logo_file is not None and req.logo_file != clip.get("logo_file"))
+                or (logo_file and (
+                    abs(logo_x - clip.get("logo_x", -1)) > 0.5
+                    or abs(logo_y - clip.get("logo_y", -1)) > 0.5
+                    or abs(logo_size - clip.get("logo_size", -1)) > 0.5
+                    or abs(logo_opacity - clip.get("logo_opacity", -1)) > 0.05
+                ))
+            )
         if rerender:
             if job_id in _editing:
                 raise HTTPException(409, "A clip from this video is already being re-rendered.")
@@ -724,6 +730,19 @@ def edit_clip(job_id: str, index: int, req: ClipEdit) -> dict:
                 "logo_file": logo_file, "logo_x": round(logo_x, 1), "logo_y": round(logo_y, 1),
                 "logo_size": round(logo_size, 1), "logo_opacity": round(logo_opacity, 2),
                 "highlight": fx.get("highlight", False), "emoji": fx.get("emoji", False),
+            }
+        else:
+            changes = {
+                "start": round(req.start, 2), "end": round(req.end, 2),
+                "length": round(req.end - req.start, 1),
+                "text": text,
+                "hook": hook,
+                "aspect": aspect, "layout": layout, "style": style,
+                "watermark": watermark, "watermark_pos": watermark_pos,
+                "logo_file": logo_file, "logo_x": round(logo_x, 1), "logo_y": round(logo_y, 1),
+                "logo_size": round(logo_size, 1), "logo_opacity": round(logo_opacity, 2),
+                "highlight": req.highlight if req.highlight is not None else clip.get("highlight", False),
+                "emoji": req.emoji if req.emoji is not None else clip.get("emoji", False),
             }
         if req.title is not None and req.title.strip():
             changes["title"] = req.title.strip()

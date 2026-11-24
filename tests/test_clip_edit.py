@@ -386,3 +386,36 @@ def test_upload_logo_and_apply_position_anywhere(client, renders):
     assert call["logo_opacity"] == 0.85
 
 
+def test_edit_instant_save_without_rerender(client, renders):
+    jid = _job(client)
+    res_edit = _edit(
+        client, jid, start=11.5, end=22.5,
+        title="Instant Title", hook="Instant Hook 🔥",
+        aspect="1:1", layout="fit", style="comic",
+        logo_file="logo.png", logo_x=50.0, logo_y=50.0,
+        logo_size=25.0, logo_opacity=0.75,
+        highlight=True, emoji=True,
+        rerender=False,
+    )
+    assert res_edit.status_code == 200, res_edit.text
+    clip = res_edit.json()["clips"][0]
+    assert clip["title"] == "Instant Title"
+    assert clip["hook"] == "Instant Hook 🔥"
+    assert clip["start"] == 11.5
+    assert clip["end"] == 22.5
+    assert clip["length"] == 11.0
+    assert clip["aspect"] == "1:1"
+    assert clip["layout"] == "fit"
+    assert clip["style"] == "comic"
+    assert clip["logo_file"] == "logo.png"
+    assert clip["logo_x"] == 50.0
+    assert clip["logo_y"] == 50.0
+    assert clip["logo_size"] == 25.0
+    assert clip["logo_opacity"] == 0.75
+    assert clip["highlight"] is True
+    assert clip["emoji"] is True
+    # Zero renders performed!
+    assert len(renders) == 0
+
+
+
