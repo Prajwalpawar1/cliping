@@ -1784,7 +1784,7 @@
 
 <!-- Edit Clip Modal: ASG Video Editor Studio -->
 <dialog id="eddlg" aria-labelledby="eddlgTitle" class="editor-modal">
-  <form class="dlg dlg-wide" id="edform" method="dialog">
+  <form class="dlg dlg-wide" id="edform" novalidate onsubmit="return false;">
     <div class="ed-header">
       <div>
         <h2 id="eddlgTitle">✂️ Video Editor Studio <span class="sub" id="edWhich"></span></h2>
@@ -1834,11 +1834,11 @@
           <div class="two">
             <div>
               <label class="lbl" for="edStart">Start (video seconds)</label>
-              <input type="number" id="edStart" min="0" step="0.1" required inputmode="decimal" aria-describedby="edLenHint">
+              <input type="number" id="edStart" min="0" step="0.1" inputmode="decimal" aria-describedby="edLenHint">
             </div>
             <div>
               <label class="lbl" for="edEnd">End (video seconds)</label>
-              <input type="number" id="edEnd" min="0" step="0.1" required inputmode="decimal" aria-describedby="edLenHint">
+              <input type="number" id="edEnd" min="0" step="0.1" inputmode="decimal" aria-describedby="edLenHint">
             </div>
           </div>
           <p class="field-hint" id="edLenHint" aria-live="polite" style="margin-top:6px; font-weight:600;"></p>
@@ -1991,7 +1991,7 @@
 
     <div class="btns" style="margin-top:16px;">
       <button type="button" class="ghost" id="edCancel">Cancel</button>
-      <button type="submit" class="go" id="edSubmit">
+      <button type="button" class="go" id="edSubmit">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg>
         <span>Save Changes</span>
       </button>
@@ -3269,8 +3269,8 @@ $("#edLogoOpacity")?.addEventListener("input", (e) => {
   updateLogoVisuals();
 });
 
-$("#edform")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
+async function saveClipEdits(e) {
+  if (e) e.preventDefault();
   if (!editing) return;
   const start = +$("#edStart").value, end = +$("#edEnd").value;
   if (!(end > start)) { $("#ederr").textContent = "End must be after start."; return; }
@@ -3308,7 +3308,10 @@ $("#edform")?.addEventListener("submit", async (e) => {
     btn.disabled = false;
     btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg> <span>Save Changes</span>`;
   }
-});
+}
+
+$("#edSubmit")?.addEventListener("click", saveClipEdits);
+$("#edform")?.addEventListener("submit", saveClipEdits);
 
 // ---------- ⋯ More Options Dropdown ----------
 const menu = { el: null, btn: null, job: null, index: null };
