@@ -25,7 +25,7 @@ from starlette.background import BackgroundTask
 
 from . import config, render, selector, source, trim, youtube
 
-app = FastAPI(title="ASG Cliper AI")
+app = FastAPI(title="ASG Clipping")
 
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"} | {
@@ -51,7 +51,7 @@ async def same_origin_only(request: Request, call_next):
       page on another site must not delete videos, post clips or disconnect
       YouTube. Extra hostnames can be allowed with CLIPSMITH_ALLOWED_HOSTS."""
     if _hostname(request.headers.get("host", "")) not in _LOCAL_HOSTS:
-        return JSONResponse({"detail": "Open Clipsmith at http://127.0.0.1:8765."}, status_code=403)
+        return JSONResponse({"detail": "Open ASG Clipping at http://127.0.0.1:8765."}, status_code=403)
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         origin = request.headers.get("origin")
         if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):

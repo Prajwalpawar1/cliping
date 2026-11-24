@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ASG Cliper AI — Intelligent Video to Viral Shorts Studio</title>
+<title>ASG Clipping — Intelligent Video to Viral Shorts Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -1074,14 +1074,14 @@
 
 <header class="app-nav">
   <div class="nav-inner">
-    <div class="brand" id="brandNav" title="ASG Cliper AI Studio">
+    <div class="brand" id="brandNav" title="ASG Clipping Studio">
       <span class="logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
           <path d="M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.8l6.3 3.5L12 11.8 5.7 8.3 12 4.8zm-7 5.5l6 3.3v6.6l-6-3.3V10.3zm8 9.9v-6.6l6-3.3v6.6l-6 3.3z"/>
         </svg>
       </span>
       <div class="brand-text-col">
-        <span class="brand-text">ASG Cliper <span class="ai-badge">AI</span></span>
+        <span class="brand-text">ASG Clipping <span class="ai-badge">AI</span></span>
         <span class="brand-sub">Viral Shorts Studio</span>
       </div>
       <span class="pro-tag">PRO</span>
@@ -1362,7 +1362,7 @@
         </div>
 
         <div class="conn-body">
-          <p id="ytCardDesc">Connect your YouTube channel using Google OAuth to upload and schedule vertical shorts directly from ASG Cliper AI.</p>
+          <p id="ytCardDesc">Connect your YouTube channel using Google OAuth to upload and schedule vertical shorts directly from ASG Clipping.</p>
           <div class="conn-stat-row" id="ytChannelRow" hidden>
             <span>Authorized Channel</span>
             <b id="ytChannelName">—</b>
@@ -1655,7 +1655,7 @@ async function loadYouTube() {
     if (btnDisconnectYT) btnDisconnectYT.hidden = false;
 
     btnDisconnectYT.onclick = async () => {
-      if (!confirm("Disconnect YouTube? ASG Cliper AI will no longer post to your channel.")) return;
+      if (!confirm("Disconnect YouTube? ASG Clipping will no longer post to your channel.")) return;
       await api("/api/youtube/disconnect", { method: "POST" }).catch((e) => alert(e.message));
       await loadYouTube();
     };
@@ -1847,7 +1847,7 @@ function ytStatusHtml(s) {
     return `<div class="yt-box busy">
       <div class="yt-row"><span class="yt-title"><span class="spin" aria-hidden="true"></span><span>${label}</span></span><span class="yt-pct">${p}%</span></div>
       <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p}"><div style="width:${p}%"></div></div>
-      <div class="yt-hint">Keep ASG Cliper AI open until upload completes.</div></div>`;
+      <div class="yt-hint">Keep ASG Clipping open until upload completes.</div></div>`;
   }
   if (s.status === "error") {
     const isLimit = /uploadLimitExceeded|exceeded the number of videos|upload limit/i.test(s.error || "");

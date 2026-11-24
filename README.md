@@ -1,4 +1,4 @@
-# Clipsmith
+# ASG Clipping (asg cliping)
 
 **A free, open-source alternative to OpusClip. Turn one long YouTube video into a batch of ready-to-post Shorts, on your own laptop.**
 
