@@ -10,7 +10,6 @@ Paste a YouTube link. ASG Clipping finds the best 30–60 second moments, crops 
 
 > Not affiliated with OpusClip. "OpusClip" is mentioned only to describe what this project is an alternative to.
 
-![ASG Clipping screenshot](docs/ss.png)
 
 ## ASG Clipping vs OpusClip
 
