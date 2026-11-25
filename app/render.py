@@ -610,7 +610,7 @@ def render_clip(
 
     extra_inputs = []
     if logo_file and Path(logo_file).exists():
-        extra_inputs = ["-i", str(logo_file)]
+        extra_inputs = ["-i", str(Path(logo_file).resolve())]
         logo_w = max(40, round(W * (max(4.0, min(60.0, logo_size)) / 100.0)))
         op = max(0.05, min(1.0, logo_opacity))
         lx = max(0.0, min(100.0, logo_x)) / 100.0
@@ -623,7 +623,7 @@ def render_clip(
 
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
-        "-ss", f"{start:.3f}", "-t", f"{clip_len:.3f}", "-i", str(video),
+        "-ss", f"{start:.3f}", "-t", f"{clip_len:.3f}", "-i", str(Path(video).resolve()),
         *extra_inputs,
         "-filter_complex", graph, "-map", "[v]", *[x for m in audio_maps for x in ("-map", m)],
         "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
