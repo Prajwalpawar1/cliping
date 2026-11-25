@@ -671,6 +671,63 @@
     font-size: 14px;
     font-weight: 600;
   }
+  .btn-cancel-job {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s ease;
+    margin-left: 8px;
+  }
+  .btn-cancel-job:hover {
+    background: #fee2e2;
+    border-color: #f87171;
+  }
+  .seg-plan-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f0fdf4;
+    border: 1.5px solid #bbf7d0;
+    border-radius: 12px;
+    margin-top: 14px;
+  }
+  .seg-plan-icon {
+    font-size: 22px;
+    flex: none;
+  }
+  .seg-plan-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .seg-plan-content b {
+    display: block;
+    font-size: 13.5px;
+    color: #166534;
+  }
+  .seg-plan-content span {
+    display: block;
+    font-size: 12px;
+    color: #15803d;
+  }
+  .seg-plan-pill {
+    padding: 4px 10px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 11.5px;
+    font-weight: 700;
+    border-radius: 999px;
+    border: 1px solid #86efac;
+    white-space: nowrap;
+  }
   .clip.edited-clip {
     border-color: #93c5fd;
     box-shadow: 0 0 0 1.5px #bfdbfe, var(--shadow-card);
@@ -1731,6 +1788,16 @@
             </div>
             <p class="field-hint">Leave blank to slice the <b>entire video from 0:00 to the end</b>.</p>
           </div>
+
+          <!-- Slicing Estimation & Standard Plan Card -->
+          <div class="seg-plan-card" id="segPlanCard">
+            <div class="seg-plan-icon">📊</div>
+            <div class="seg-plan-content">
+              <b id="segPlanTitle">Continuous Slicing Plan: 60s per short</b>
+              <span id="segPlanDesc">Standard for YouTube Shorts &amp; Instagram Reels · Speech pause snapping active (words never cut mid-sentence)</span>
+            </div>
+            <div class="seg-plan-pill" id="segPlanEstimate">Ready to slice</div>
+          </div>
         </div>
       </div>
 
@@ -2270,6 +2337,7 @@ let activeTab = "all";         // "all" | "preserved" | "action" | "posted"
 let searchQuery = "";
 let allExpanded = true;
 const jobOpen = new Map();
+const expandedJobs = new Set();
 
 async function api(path, opts) {
   const res = await fetch(path, opts);
@@ -2849,6 +2917,7 @@ function jobProgressHtml(j) {
       <div class="now-txt"><b>${esc(j.status === "queued" ? "Waiting to start" : j.message)}</b>
         <span class="what">${esc(now ? now.what(j) : "In queue")}</span></div>
       <span class="pct">${pct}%</span>
+      <button type="button" class="btn-cancel-job" data-canceljob="${esc(j.id)}" title="Cancel this video processing">✕ Cancel</button>
     </div>
     ${cur === 2 && j.clips.length ? `<div class="ready">${j.clips.length} clip${j.clips.length > 1 ? "s" : ""} rendered. Ready to watch while remaining finish.</div>` : ""}
   </div>`;
@@ -2922,6 +2991,7 @@ function jobBlock(j) {
   const thumb = n ? `<img class="job-thumb" src="${esc(j.clips[0].thumb)}" alt="" loading="lazy">`
     : `<span class="job-thumb ph">${busy ? '<span class="spin"></span>' : ICON_FILE}</span>`;
   const status = busy ? `<span class="badge run">${j.status === "queued" ? "Queued" : "Processing"}</span>`
+    : j.status === "cancelled" ? `<span class="badge" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;">Cancelled</span>`
     : j.status === "error" ? `<span class="badge bad">Failed</span>` : "";
   const chips = [
     `<span class="chip">${j.upload ? ICON_FILE + "File" : ICON_YT + "YouTube"}</span>`,
@@ -2934,6 +3004,10 @@ function jobBlock(j) {
       <div><dt>Score</dt><dd style="color:${scoreColor(best)}">${best}</dd></div>
     </dl>` : "";
 
+  const showAll = expandedJobs.has(j.id);
+  const visibleClips = showAll || matchingClips.length <= 12 ? matchingClips : matchingClips.slice(0, 12);
+  const showAllBtn = matchingClips.length > 12 ? `<div style="text-align:center;padding:12px 0 4px;"><button class="ghost" type="button" data-toggleparts="${esc(j.id)}" style="font-weight:700;font-size:13px;padding:8px 18px;border-radius:8px;">${showAll ? "▲ Show fewer parts" : `▼ Show all ${matchingClips.length} parts (+${matchingClips.length - 12} more)`}</button></div>` : "";
+
   return `<section class="job${open ? "" : " closed"}" data-job="${esc(j.id)}">
     <div class="jobhead">
       ${thumb}
@@ -2943,9 +3017,9 @@ function jobBlock(j) {
       </div>
       ${stats}
       <div class="job-actions">
-        ${!busy && j.status === "done" && n ? `<a class="ghost" href="/api/jobs/${esc(j.id)}/zip" download>
+        ${!busy && n ? `<a class="ghost" href="/api/jobs/${esc(j.id)}/zip" download>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16"/></svg>ZIP</a>` : ""}
-        ${busy ? "" : `<button class="iconbtn danger" type="button" data-del="${esc(j.id)}" title="Delete project">
+        ${busy ? `<button class="btn-cancel-job" type="button" data-canceljob="${esc(j.id)}" title="Cancel processing">✕ Cancel</button>` : `<button class="iconbtn danger" type="button" data-del="${esc(j.id)}" title="Delete project">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>`}
         <button class="iconbtn job-toggle" type="button" data-jobtoggle="${esc(j.id)}" aria-label="Toggle">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
@@ -2954,7 +3028,7 @@ function jobBlock(j) {
     <div class="job-body">
       ${busy ? jobProgressHtml(j) : ""}
       ${j.status === "error" ? `<div class="note err">${esc(j.error)}</div>` : ""}
-      ${matchingClips.length ? `<ul class="grid">${matchingClips.map(({ c, i }) => clipCard(c, j.id, i)).join("")}</ul>` : ""}
+      ${matchingClips.length ? `<ul class="grid">${visibleClips.map(({ c, i }) => clipCard(c, j.id, i)).join("")}</ul>${showAllBtn}` : ""}
     </div>
   </section>`;
 }
@@ -2970,7 +3044,10 @@ function renderStudioActive() {
     } else if (isSegmentJob(activeJob)) {
       studioActiveEl.innerHTML = `<div class="active-section-head">
         <h3><span>✂️ Cut in Clip Studio Active:</span> Slicing continuous video series</h3>
-        <button class="btn-view-library" type="button" onclick="switchMainTab('segment')">Switch to Cut in Clip Studio →</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-cancel-job" type="button" data-canceljob="${esc(activeJob.id)}">✕ Cancel</button>
+          <button class="btn-view-library" type="button" onclick="switchMainTab('segment')">Switch to Cut in Clip Studio →</button>
+        </div>
       </div>
       ${jobProgressHtml(activeJob)}`;
     } else {
@@ -2978,7 +3055,10 @@ function renderStudioActive() {
       const clips = activeJob.clips || [];
       studioActiveEl.innerHTML = `<div class="active-section-head">
         <h3><span>⚡ Currently Processing:</span> ${esc(name)}</h3>
-        <button class="btn-view-library" type="button" id="btnGoLib">View all in Project Library →</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-cancel-job" type="button" data-canceljob="${esc(activeJob.id)}">✕ Cancel</button>
+          <button class="btn-view-library" type="button" id="btnGoLib">View all in Project Library →</button>
+        </div>
       </div>
       ${jobProgressHtml(activeJob)}
       ${activeJob.status === "error" ? `<div class="note err">${esc(activeJob.error)}</div>` : ""}
@@ -2993,7 +3073,10 @@ function renderStudioActive() {
       const clips = activeJob.clips || [];
       segActiveEl.innerHTML = `<div class="active-section-head">
         <h3><span>✂️ Currently Slicing:</span> ${esc(name)}</h3>
-        <button class="btn-view-library" type="button" id="btnGoLibFromSeg">View all in Project Library →</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-cancel-job" type="button" data-canceljob="${esc(activeJob.id)}">✕ Cancel Slicing</button>
+          <button class="btn-view-library" type="button" id="btnGoLibFromSeg">View all in Project Library →</button>
+        </div>
       </div>
       ${jobProgressHtml(activeJob)}
       ${activeJob.status === "error" ? `<div class="note err">${esc(activeJob.error)}</div>` : ""}
@@ -3187,12 +3270,54 @@ $("#file")?.addEventListener("change", showFile);
 $("#clearfile")?.addEventListener("click", () => { clearFile(); $("#file").focus(); });
 
 // ---------- Cut in Clip Studio (Continuous Slicer) Handlers ----------
+function updateSegPlan() {
+  const planTitle = $("#segPlanTitle");
+  const planDesc = $("#segPlanDesc");
+  const planEst = $("#segPlanEstimate");
+  if (!planTitle || !planDesc || !planEst) return;
+
+  const segChoice = radio("segLen") || "60";
+  let sec = 60;
+  if (segChoice === "custom") {
+    sec = parseInt($("#segCustomLen")?.value || "60", 10) || 60;
+  } else {
+    sec = parseInt(segChoice, 10);
+  }
+
+  let fromSec = null, toSec = null;
+  try { fromSec = parseClock($("#segFrom")?.value || "", "From"); } catch {}
+  try { toSec = parseClock($("#segTo")?.value || "", "To"); } catch {}
+
+  let rangeText = "";
+  let estCount = `~${sec}s per short`;
+  if (fromSec !== null && toSec !== null && toSec > fromSec) {
+    const diff = toSec - fromSec;
+    const count = Math.max(1, Math.round(diff / sec));
+    rangeText = ` · Window: ${Math.floor(fromSec / 60)}:${String(Math.floor(fromSec % 60)).padStart(2, "0")} to ${Math.floor(toSec / 60)}:${String(Math.floor(toSec % 60)).padStart(2, "0")} (${Math.round(diff)}s)`;
+    estCount = `~${count} shorts (${sec}s each)`;
+  } else if (toSec !== null && toSec > 0) {
+    const count = Math.max(1, Math.round(toSec / sec));
+    rangeText = ` · First ${Math.floor(toSec / 60)}:${String(Math.floor(toSec % 60)).padStart(2, "0")}`;
+    estCount = `~${count} shorts (${sec}s each)`;
+  }
+
+  const label = segChoice === "30" ? "Quick Bite" : segChoice === "60" ? "Shorts Standard" : segChoice === "90" ? "Reels Standard" : "Custom Duration";
+  planTitle.textContent = `Continuous Slicing Plan: ${sec}s per short (${label})`;
+  planDesc.textContent = `Sequential Start-to-End Shorts · Speech pause snapping (±4s)${rangeText}`;
+  planEst.textContent = estCount;
+}
+
 document.querySelectorAll('input[name="segLen"]').forEach((r) => {
   r.addEventListener("change", (e) => {
     const box = $("#segCustomBox");
     if (box) box.style.display = e.target.value === "custom" ? "flex" : "none";
+    updateSegPlan();
   });
 });
+$("#segCustomLen")?.addEventListener("input", updateSegPlan);
+$("#segFrom")?.addEventListener("input", updateSegPlan);
+$("#segTo")?.addEventListener("input", updateSegPlan);
+setTimeout(updateSegPlan, 100);
 
 const SEG_DROP_DEFAULT = $("#segDropText")?.innerHTML;
 function showSegFile() {
@@ -3924,6 +4049,31 @@ document.addEventListener("click", async (e) => {
       const open = sec.classList.toggle("closed") === false;
       jobOpen.set(jid, open);
     }
+    return;
+  }
+  const cancelBtn = e.target.closest("[data-canceljob]");
+  if (cancelBtn) {
+    const jid = cancelBtn.dataset.canceljob;
+    const j = jobs.find((x) => x.id === jid);
+    const n = (j?.clips || []).length;
+    const msg = n > 0
+      ? `Cancel processing this video?\n\n${n} clip(s) already rendered will be preserved in your library.`
+      : `Cancel processing this video?`;
+    if (confirm(msg)) {
+      try {
+        await api(`/api/jobs/${jid}/cancel`, { method: "POST" });
+        await refresh();
+        toast("Video processing cancelled.");
+      } catch (err) { alert(err.message); }
+    }
+    return;
+  }
+  const togglePartsBtn = e.target.closest("[data-toggleparts]");
+  if (togglePartsBtn) {
+    const jid = togglePartsBtn.dataset.toggleparts;
+    if (expandedJobs.has(jid)) expandedJobs.delete(jid);
+    else expandedJobs.add(jid);
+    render();
     return;
   }
   const del = e.target.closest("[data-del]");

@@ -102,7 +102,14 @@ def check_cookies(text: str) -> int:
     return count
 
 
-def download(url: str, workdir: Path, progress: Progress) -> Source:
+def download(
+    url: str,
+    workdir: Path,
+    progress: Progress,
+    allow_empty: bool = False,
+    start_time: float | None = None,
+    end_time: float | None = None,
+) -> Source:
     progress(2, "Reading video details")
     with yt_dlp.YoutubeDL(_ydl_base()) as ydl:
         info = ydl.extract_info(url, download=False)
@@ -146,15 +153,20 @@ def download(url: str, workdir: Path, progress: Progress) -> Source:
         words = _fetch_captions(url, workdir, track)
     if not words:
         progress(26, "No captions from YouTube, transcribing audio (slower)")
-        words = whisper_transcribe(video_path, workdir, progress)
+        try:
+            words = whisper_transcribe(video_path, workdir, progress, start_time=start_time, end_time=end_time)
+        except TypeError:
+            words = whisper_transcribe(video_path, workdir, progress)
         transcript_source = "whisper"
     if not words:
-        raise RuntimeError("Could not get any speech from this video.")
+        if not allow_empty:
+            raise RuntimeError("Could not get any speech from this video.")
+        transcript_source = "none"
 
     return Source(
         video_path=video_path,
         title=info.get("title") or "Untitled",
-        duration=duration or words[-1].end,
+        duration=duration or (words[-1].end if words else 0.0),
         language=lang,
         words=words,
         transcript_source=transcript_source,
@@ -195,7 +207,15 @@ def _fetch_captions(url: str, workdir: Path, track: str) -> list[Word]:
     return parse_json3(sub) if sub.exists() else []
 
 
-def from_local_file(path: Path, workdir: Path, progress: Progress, title: str | None = None) -> Source:
+def from_local_file(
+    path: Path,
+    workdir: Path,
+    progress: Progress,
+    title: str | None = None,
+    allow_empty: bool = False,
+    start_time: float | None = None,
+    end_time: float | None = None,
+) -> Source:
     """An uploaded video: no captions to fetch, so transcribe it with Whisper."""
     progress(2, "Reading video details")
     out = subprocess.run(
@@ -210,16 +230,22 @@ def from_local_file(path: Path, workdir: Path, progress: Progress, title: str | 
         raise ValueError(f"Video is longer than {config.MAX_VIDEO_HOURS} hours.")
 
     progress(26, "Transcribing audio")
-    words = whisper_transcribe(path, workdir, progress)
+    try:
+        words = whisper_transcribe(path, workdir, progress, start_time=start_time, end_time=end_time)
+    except TypeError:
+        words = whisper_transcribe(path, workdir, progress)
+    transcript_source = "whisper"
     if not words:
-        raise RuntimeError("Could not get any speech from this video.")
+        if not allow_empty:
+            raise RuntimeError("Could not get any speech from this video.")
+        transcript_source = "none"
     return Source(
         video_path=path,
         title=title or path.stem or "Untitled",
-        duration=duration or words[-1].end,
+        duration=duration or (words[-1].end if words else 0.0),
         language="",
         words=words,
-        transcript_source="whisper",
+        transcript_source=transcript_source,
     )
 
 
@@ -284,12 +310,26 @@ def read_wav_16k(path: Path) -> np.ndarray:
     return np.frombuffer(data, dtype="<i2").astype(np.float32) / 32768.0
 
 
-def whisper_transcribe(video_path: Path, workdir: Path, progress: Progress) -> list[Word]:
+def whisper_transcribe(
+    video_path: Path,
+    workdir: Path,
+    progress: Progress,
+    start_time: float | None = None,
+    end_time: float | None = None,
+) -> list[Word]:
     from faster_whisper import WhisperModel
 
     wav = workdir / "audio.wav"
+    seek_args = []
+    offset = 0.0
+    if start_time is not None and start_time > 0:
+        seek_args.extend(["-ss", f"{start_time:.3f}"])
+        offset = float(start_time)
+    if end_time is not None and end_time > (start_time or 0):
+        dur = end_time - (start_time or 0.0)
+        seek_args.extend(["-t", f"{dur:.3f}"])
     subprocess.run(
-        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(video_path), "-vn", "-ac", "1", "-ar", "16000", str(wav)],
+        ["ffmpeg", "-y", "-loglevel", "error", *seek_args, "-i", str(video_path), "-vn", "-ac", "1", "-ar", "16000", str(wav)],
         check=True,
     )
     model = WhisperModel(
@@ -303,7 +343,7 @@ def whisper_transcribe(video_path: Path, workdir: Path, progress: Progress) -> l
         for w in seg.words or []:
             tok = w.word.strip()
             if tok:
-                words.append(Word(tok, float(w.start), float(w.end)))
+                words.append(Word(tok, round(float(w.start) + offset, 2), round(float(w.end) + offset, 2)))
         progress(26 + 14 * min(seg.end / total, 1), "Transcribing audio")
     wav.unlink(missing_ok=True)
     return words

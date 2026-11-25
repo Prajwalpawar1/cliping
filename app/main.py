@@ -148,6 +148,12 @@ def _load_existing() -> None:
 
 
 _load_existing()
+_cancelled_jobs: set[str] = set()
+
+
+def _is_cancelled(job_id: str) -> bool:
+    with _lock:
+        return job_id in _cancelled_jobs or _jobs.get(job_id, {}).get("status") == "cancelled"
 
 
 def _clock(t: float) -> str:
@@ -220,16 +226,35 @@ def _run(job_id: str, req: JobRequest) -> None:
         _update(job_id, progress=pct, message=message)
 
     try:
+        if _is_cancelled(job_id):
+            return
         _update(job_id, status="running")
         upload = _jobs[job_id].get("upload")
+        allow_empty = (req.mode == "segment" or req.style == "none")
         if upload:
             path = next(workdir.glob("source.*"))
-            src = source.from_local_file(path, workdir, progress, title=Path(upload).stem)
+            try:
+                src = source.from_local_file(
+                    path, workdir, progress, title=Path(upload).stem,
+                    allow_empty=allow_empty, start_time=req.start_time, end_time=req.end_time,
+                )
+            except TypeError:
+                src = source.from_local_file(path, workdir, progress, title=Path(upload).stem)
         else:
-            src = source.download(req.url, workdir, progress)
+            try:
+                src = source.download(
+                    req.url, workdir, progress,
+                    allow_empty=allow_empty, start_time=req.start_time, end_time=req.end_time,
+                )
+            except TypeError:
+                src = source.download(req.url, workdir, progress)
+        if _is_cancelled(job_id):
+            return
         _update(job_id, title=src.title, duration=src.duration, transcript_source=src.transcript_source)
 
         if req.mode == "segment":
+            if _is_cancelled(job_id):
+                return
             progress(42, "Calculating continuous time slices")
             t_start = max(0.0, req.start_time or 0.0)
             t_end = min(src.duration, req.end_time) if req.end_time is not None else src.duration
@@ -248,6 +273,10 @@ def _run(job_id: str, req: JobRequest) -> None:
             if not raw_cuts:
                 raw_cuts = [[round(t_start, 2), round(t_end, 2)]]
 
+            MAX_SEGMENTS = 150
+            if len(raw_cuts) > MAX_SEGMENTS:
+                raw_cuts = raw_cuts[:MAX_SEGMENTS]
+
             # Snap internal cut points to natural word/sentence pauses if available
             segments = []
             for i in range(len(raw_cuts)):
@@ -261,8 +290,9 @@ def _run(job_id: str, req: JobRequest) -> None:
                     if pause_candidates:
                         best_pause = min(pause_candidates, key=lambda p: abs(p[0] - ce))
                         snap_point = round((best_pause[0] + best_pause[1]) / 2, 2)
-                        ce = snap_point
-                        raw_cuts[i + 1][0] = snap_point
+                        if (snap_point - cs) >= 10.0 and (raw_cuts[i + 1][1] - snap_point) >= 10.0:
+                            ce = snap_point
+                            raw_cuts[i + 1][0] = snap_point
                 segments.append((cs, ce))
 
             total_parts = len(segments)
@@ -270,9 +300,20 @@ def _run(job_id: str, req: JobRequest) -> None:
             _update(job_id, selection="continuous", total_parts=total_parts, is_segment=True)
 
             done: list[dict] = []
+            render_start_time = time.time()
             for i, (seg_start, seg_end) in enumerate(segments):
+                if _is_cancelled(job_id):
+                    _update(job_id, status="cancelled", message=f"Cancelled by user ({len(done)} parts completed).")
+                    return
                 part_num = i + 1
-                progress(45 + 50 * i / total_parts, f"Rendering Part {part_num} of {total_parts}")
+                elapsed = time.time() - render_start_time
+                if i > 0:
+                    avg_time = elapsed / i
+                    rem_secs = round(avg_time * (total_parts - i))
+                    eta_str = f" · ~{rem_secs}s left" if rem_secs < 60 else f" · ~{int(rem_secs // 60)}m left"
+                else:
+                    eta_str = ""
+                progress(45 + 50 * i / total_parts, f"Rendering Part {part_num} of {total_parts}{eta_str}")
                 title = f"{base_title} (Part {part_num})"
                 hook = f"Part {part_num} of {total_parts}: {base_title}" if req.hook else None
                 clean_name = re.sub(r'[^\w\s]', '', base_title).strip()
@@ -312,6 +353,8 @@ def _run(job_id: str, req: JobRequest) -> None:
                 })
                 _update(job_id, clips=list(done))
         else:
+            if _is_cancelled(job_id):
+                return
             progress(42, "Finding the best moments")
             sentences = selector.within(selector.to_sentences(src.words), req.start_time, req.end_time)
             clips, method, warning = selector.select(
@@ -330,8 +373,19 @@ def _run(job_id: str, req: JobRequest) -> None:
             _update(job_id, selection=method, warning=warning)
 
             done: list[dict] = []
+            render_start_time = time.time()
             for i, clip in enumerate(clips):
-                progress(45 + 54 * i / len(clips), f"Rendering clip {i + 1} of {len(clips)}")
+                if _is_cancelled(job_id):
+                    _update(job_id, status="cancelled", message=f"Cancelled by user ({len(done)} clips completed).")
+                    return
+                elapsed = time.time() - render_start_time
+                if i > 0:
+                    avg_time = elapsed / i
+                    rem_secs = round(avg_time * (len(clips) - i))
+                    eta_str = f" · ~{rem_secs}s left" if rem_secs < 60 else f" · ~{int(rem_secs // 60)}m left"
+                else:
+                    eta_str = ""
+                progress(45 + 54 * i / len(clips), f"Rendering clip {i + 1} of {len(clips)}{eta_str}")
                 start, end = _render_bounds(
                     clip.start, clip.end, src.words, src.duration, req.start_time, req.end_time
                 )
@@ -357,6 +411,8 @@ def _run(job_id: str, req: JobRequest) -> None:
                 )
                 _update(job_id, clips=list(done))
 
+        if _is_cancelled(job_id):
+            return
         # Keep the source video and its transcript so a clip can be re-cut later
         # in the clip editor; both go when the job is deleted.
         _save_transcript(job_id, src.words)
@@ -525,6 +581,21 @@ def get_job(job_id: str) -> dict:
     if not job:
         raise HTTPException(404, "Job not found.")
     return job
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+def cancel_job(job_id: str) -> dict:
+    with _lock:
+        job = _jobs.get(job_id)
+        if not job:
+            raise HTTPException(404, "Job not found.")
+        if job["status"] not in ("queued", "running"):
+            raise HTTPException(400, f"Cannot cancel job with status '{job['status']}'.")
+        _cancelled_jobs.add(job_id)
+        job["status"] = "cancelled"
+        job["message"] = "Processing cancelled by user."
+        _save(job)
+    return {"ok": True, "job_id": job_id, "status": "cancelled"}
 
 
 @app.delete("/api/jobs/{job_id}")

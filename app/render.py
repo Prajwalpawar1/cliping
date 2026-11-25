@@ -623,10 +623,12 @@ def render_clip(
 
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
+        "-threads", "0",
         "-ss", f"{start:.3f}", "-t", f"{clip_len:.3f}", "-i", str(Path(video).resolve()),
         *extra_inputs,
         "-filter_complex", graph, "-map", "[v]", *[x for m in audio_maps for x in ("-map", m)],
         "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+        "-threads", "0",
         "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", f"{name}.mp4",
     ]
     # cwd=out_dir so the ass filter gets a bare filename: Windows paths with

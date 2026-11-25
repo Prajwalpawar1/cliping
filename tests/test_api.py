@@ -121,3 +121,32 @@ def test_toggle_preserve_clip(client):
     res2 = client.post(f"/api/jobs/{job_id}/clips/0/preserve")
     assert res2.status_code == 200
     assert res2.json()["preserved"] is not p1
+
+
+def test_cancel_queued_job(client):
+    job = client.post("/api/jobs", json={"url": YT}).json()
+    assert job["status"] == "queued"
+    res = client.post(f"/api/jobs/{job['id']}/cancel")
+    assert res.status_code == 200
+    assert res.json()["status"] == "cancelled"
+    assert client.get(f"/api/jobs/{job['id']}").json()["status"] == "cancelled"
+
+
+def test_cancel_running_job(client):
+    job = client.post("/api/jobs", json={"url": YT}).json()
+    main._jobs[job["id"]]["status"] = "running"
+    res = client.post(f"/api/jobs/{job['id']}/cancel")
+    assert res.status_code == 200
+    assert res.json()["status"] == "cancelled"
+    assert client.get(f"/api/jobs/{job['id']}").json()["status"] == "cancelled"
+
+
+def test_cannot_cancel_finished_job(client):
+    job = client.post("/api/jobs", json={"url": YT}).json()
+    main._jobs[job["id"]]["status"] = "done"
+    res = client.post(f"/api/jobs/{job['id']}/cancel")
+    assert res.status_code == 400
+
+
+def test_cancel_unknown_job_is_404(client):
+    assert client.post("/api/jobs/nope/cancel").status_code == 404
