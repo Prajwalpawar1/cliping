@@ -642,6 +642,35 @@
     letter-spacing: .02em;
     text-transform: uppercase;
   }
+  .badge-part {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+  }
+  .seg-custom-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .seg-custom-box input[type="number"] {
+    width: 100px;
+    min-height: 38px;
+    padding: 6px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
   .clip.edited-clip {
     border-color: #93c5fd;
     box-shadow: 0 0 0 1.5px #bfdbfe, var(--shadow-card);
@@ -1401,6 +1430,9 @@
       <button class="main-tab-btn active" data-main-tab="create" type="button">
         <span>⚡</span> Create Studio
       </button>
+      <button class="main-tab-btn" data-main-tab="segment" type="button">
+        <span>✂️</span> Cut in Clip Studio
+      </button>
       <button class="main-tab-btn" data-main-tab="library" type="button">
         <span>📚</span> Project Library <span class="nav-count-badge" id="navLibCount">0</span>
       </button>
@@ -1594,6 +1626,175 @@
     <div id="studioActiveArea" class="studio-active-area">
       <!-- Renders current in-progress job or latest generated clips right here -->
     </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- TAB: CUT IN CLIP STUDIO (CONTINUOUS SHORT SLICER) -->
+  <!-- ========================================== -->
+  <div class="view-panel" id="view-segment">
+    <div class="studio-header">
+      <h1>✂️ Cut in Clip Studio</h1>
+      <p>Continuous Full-Video Slicer: Turn entire videos (10m, 30m, 1 hr+) into sequential, continuous Part 1, Part 2, Part 3... shorts formatted for YouTube Shorts &amp; Instagram Reels with dynamic captions &amp; smart framing — no moments skipped.</p>
+    </div>
+
+    <form id="segForm" class="studio-pipeline" novalidate aria-label="Slice continuous shorts">
+      <!-- STEP 1: Video Ingestion -->
+      <div class="pipeline-step">
+        <div class="step-header">
+          <span class="step-num-pill">01</span>
+          <div>
+            <h3 class="step-title">Video Ingestion</h3>
+            <p class="step-desc">Enter a YouTube link or upload a full-length video file (e.g. 10m, 30m, 1 hour)</p>
+          </div>
+        </div>
+        <div class="source-grid">
+          <div class="source-col">
+            <label class="lbl" for="segUrl"><span>YouTube Video URL</span><span class="lbl-badge">Cloud Fetch</span></label>
+            <div class="url-input-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+              <input type="url" id="segUrl" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" aria-describedby="segFormErr">
+            </div>
+          </div>
+          <div class="source-divider"><span>OR</span></div>
+          <div class="source-col">
+            <label class="lbl"><span>Direct Video Upload</span><span class="lbl-badge">Local File</span></label>
+            <div class="drop" id="segDrop">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m0 0-4 4m4-4 4 4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+              <div class="t" id="segDropText"><b>Upload video file</b><span>Drop it here or click to browse · MP4, MOV, MKV, WebM</span></div>
+              <input type="file" id="segFile" accept=".mp4,.mov,.mkv,.webm,video/*" aria-labelledby="segDropText">
+              <button type="button" class="ghost clear" id="segClearFile" hidden>Remove file</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Continuous Slicing & Standard Timing -->
+      <div class="pipeline-step">
+        <div class="step-header">
+          <span class="step-num-pill">02</span>
+          <div>
+            <h3 class="step-title">Series Name &amp; Standard Shorts Timing</h3>
+            <p class="step-desc">Configure continuous cut length for YouTube Shorts &amp; Instagram Reels standards</p>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 18px;">
+          <label class="field-label" for="segSeriesTitle">
+            <span>Series / Video Title Prefix</span>
+            <span class="field-badge">Auto-Numbered Parts</span>
+          </label>
+          <div class="input-with-icon">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+            <input type="text" id="segSeriesTitle" placeholder="e.g. GTA 6 Gameplay Walkthrough (Leave blank to use original video title)" maxlength="200" autocomplete="off">
+          </div>
+          <p class="field-hint">Outputs will be named: "Title (Part 1)", "Title (Part 2)"... with complete YouTube tags, descriptions, and hooks pre-filled.</p>
+        </div>
+
+        <div class="settings">
+          <fieldset class="setting wide">
+            <legend>Segment Cut Length <span class="legend-note">Standard timing for YouTube Shorts &amp; Instagram Reels</span></legend>
+            <div class="seg seg-icons">
+              <label><input type="radio" name="segLen" value="30"><span><i class="ar" style="width:11px;height:19px" aria-hidden="true"></i><b>30s</b><small>Quick Viral Bite</small></span></label>
+              <label><input type="radio" name="segLen" value="60" checked><span><i class="ar" style="width:11px;height:19px" aria-hidden="true"></i><b>60s</b><small>Shorts Standard</small></span></label>
+              <label><input type="radio" name="segLen" value="90"><span><i class="ar" style="width:11px;height:19px" aria-hidden="true"></i><b>90s</b><small>Reel / TikTok Standard</small></span></label>
+              <label><input type="radio" name="segLen" value="custom"><span><i class="ar" style="width:14px;height:14px" aria-hidden="true"></i><b>Custom</b><small>User Defined Length</small></span></label>
+            </div>
+            <div class="seg-custom-box" id="segCustomBox" style="display:none;">
+              <label class="lbl" for="segCustomLen" style="margin:0;">Custom seconds per short:</label>
+              <input type="number" id="segCustomLen" value="45" min="15" max="180" step="5">
+              <span class="field-hint" style="margin:0;">(15 to 180 seconds)</span>
+            </div>
+          </fieldset>
+
+          <div class="director-time-box" style="margin-top: 10px;">
+            <label class="field-label">
+              <span>Video Time Window (Optional)</span>
+              <span class="field-badge">Full Video or Range</span>
+            </label>
+            <div class="time-range-row">
+              <div class="time-input-group">
+                <span class="time-tag">From</span>
+                <div class="input-with-icon">
+                  <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  <input type="text" id="segFrom" placeholder="00:00" autocomplete="off">
+                </div>
+              </div>
+              <div class="time-divider">to</div>
+              <div class="time-input-group">
+                <span class="time-tag">To</span>
+                <div class="input-with-icon">
+                  <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  <input type="text" id="segTo" placeholder="00:00" autocomplete="off">
+                </div>
+              </div>
+            </div>
+            <p class="field-hint">Leave blank to slice the <b>entire video from 0:00 to the end</b>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Format & Caption Style -->
+      <div class="pipeline-step">
+        <div class="step-header">
+          <span class="step-num-pill">03</span>
+          <div>
+            <h3 class="step-title">Aspect Ratio, Animated Captions &amp; Framing</h3>
+            <p class="step-desc">Pick 9:16 vertical shorts layout and stylish word-by-word captions</p>
+          </div>
+        </div>
+
+        <div class="settings">
+          <fieldset class="setting wide">
+            <legend>Aspect Ratio</legend>
+            <div class="seg seg-icons">
+              <label><input type="radio" name="segAspect" value="9:16" checked><span><i class="ar" style="width:11px;height:19px" aria-hidden="true"></i><b>9:16</b><small>Shorts, Reels, TikTok</small></span></label>
+              <label><input type="radio" name="segAspect" value="1:1"><span><i class="ar" style="width:16px;height:16px" aria-hidden="true"></i><b>1:1</b><small>Square Feed</small></span></label>
+              <label><input type="radio" name="segAspect" value="16:9"><span><i class="ar" style="width:22px;height:12px" aria-hidden="true"></i><b>16:9</b><small>Landscape Wide</small></span></label>
+            </div>
+          </fieldset>
+
+          <div class="setting">
+            <label for="segLayout">Framing Layout</label>
+            <select id="segLayout">
+              <option value="auto" selected>🎯 Smart Speaker Tracking (Auto)</option>
+              <option value="split">🎬 Split Screen (Facecam + Gameplay)</option>
+              <option value="fit">🖼️ Fit with Blurred Background</option>
+              <option value="podcast">🎙️ Podcast Stack (Top/Bottom)</option>
+            </select>
+          </div>
+
+          <fieldset class="setting wide">
+            <legend>Caption Style <span class="legend-note">preview shows animated typography</span></legend>
+            <div class="capstyles" id="segStylesContainer"></div>
+            <div class="switches capfx">
+              <label class="switch"><span><b>Highlight key words</b><small>Numbers and strong words get their own colour and pop in</small></span><input type="checkbox" role="switch" id="segHighlight" checked></label>
+              <label class="switch"><span><b>Add contextual emoji</b><small>Automatically pairs keywords with relevant emojis</small></span><input type="checkbox" role="switch" id="segEmoji"></label>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="switches">
+          <label class="switch"><span><b>Hook line on screen</b><small>Displays "Part 1: Series Name" at the start of each short</small></span><input type="checkbox" role="switch" id="segHook" checked></label>
+          <label class="switch"><span><b>Trim silent pauses</b><small>Snaps cut boundaries smoothly between spoken phrases</small></span><input type="checkbox" role="switch" id="segTrim" checked></label>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="pipeline-action-bar">
+        <div>
+          <p class="formerr" id="segFormErr" role="alert"></p>
+        </div>
+        <button class="go studio-go-btn" id="segGo" type="submit">
+          <span class="go-sparkle">✂️</span>
+          <span class="go-label">Slice Video into Continuous Shorts</span>
+          <span class="go-badge">Sequential</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- Active Segment Job & Output Display -->
+    <div id="segActiveArea" class="studio-active-area"></div>
   </div>
 
 
@@ -2061,6 +2262,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const radio = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value;
 const jobsEl = $("#jobs");
 const studioActiveEl = $("#studioActiveArea");
+const segActiveEl = $("#segActiveArea");
 let jobs = [];
 let timer = null;
 let currentMainTab = "create"; // "create" | "library" | "connections"
@@ -2294,6 +2496,24 @@ function syncCaptionFx() {
 $("#highlight")?.addEventListener("change", syncCaptionFx);
 syncCaptionFx();
 
+function segCaptionFx() {
+  const hl = $("#segHighlight") ? $("#segHighlight").checked : true;
+  return { highlight_keywords: hl, emoji: hl && ($("#segEmoji") ? $("#segEmoji").checked : false) };
+}
+function syncSegCaptionFx() {
+  const isNoCap = radio("segStyle") === "none";
+  if ($("#segHighlight")) {
+    $("#segHighlight").disabled = isNoCap;
+  }
+  if ($("#segEmoji")) {
+    const on = $("#segHighlight") ? $("#segHighlight").checked : false;
+    $("#segEmoji").disabled = isNoCap || !on;
+    if (!on) $("#segEmoji").checked = false;
+  }
+}
+$("#segHighlight")?.addEventListener("change", syncSegCaptionFx);
+syncSegCaptionFx();
+
 const CAPTION_FONTS = {
   "Bangers": "Bangers-Regular.ttf", "Anton": "Anton-Regular.ttf",
   "Bebas Neue": "BebasNeue-Regular.ttf", "Poppins ExtraBold": "Poppins-ExtraBold.ttf",
@@ -2330,11 +2550,42 @@ function renderCaptionStyles(labels, looks) {
       <span class="cs"><span class="frame" aria-hidden="true"><span class="txt${look.reveal ? " reveal" : ""}" style="font-size:${Math.min(22, 5.6 / (look.width || 0.3)).toFixed(1)}px; font-family:${esc(font)}sans-serif; --hl:${esc(look.active || "#f59e0b")}">${words.map((w) => `<span>${w}</span>`).join("")}</span></span>
       <span class="name">${esc(labels[k])}${look.font ? `<small>${esc(look.font)}</small>` : ""}</span></span></label>`;
   }).join("");
+
+  const segStyleEl = $("#segStylesContainer");
+  if (segStyleEl) {
+    segStyleEl.innerHTML = keys.map((k) => {
+      const look = looks[k] || {};
+      if (k === "none" || look.none) {
+        return `<label><input type="radio" name="segStyle" value="${esc(k)}" ${k === pick ? "checked" : ""}>
+          <span class="cs"><span class="frame frame-nocap" aria-hidden="true">
+            <span class="no-cap-badge">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>
+                <line x1="2" y1="2" x2="22" y2="22"/>
+                <path d="M10 10.5a1.5 1.5 0 0 0-3 0v3a1.5 1.5 0 0 0 3 0"/>
+                <path d="M17 10.5a1.5 1.5 0 0 0-3 0v3a1.5 1.5 0 0 0 3 0"/>
+              </svg>
+              <span>No Captions</span>
+            </span>
+          </span>
+          <span class="name">${esc(labels[k])}<small>Clean video</small></span></span></label>`;
+      }
+      const words = look.upper === false ? ["this", "is", "how"] : ["THIS", "IS", "HOW"];
+      const font = look.font ? `"cap ${look.font}", "${look.font}", ` : "";
+      return `<label><input type="radio" name="segStyle" value="${esc(k)}" ${k === pick ? "checked" : ""}>
+        <span class="cs"><span class="frame" aria-hidden="true"><span class="txt${look.reveal ? " reveal" : ""}" style="font-size:${Math.min(22, 5.6 / (look.width || 0.3)).toFixed(1)}px; font-family:${esc(font)}sans-serif; --hl:${esc(look.active || "#f59e0b")}">${words.map((w) => `<span>${w}</span>`).join("")}</span></span>
+        <span class="name">${esc(labels[k])}${look.font ? `<small>${esc(look.font)}</small>` : ""}</span></span></label>`;
+    }).join("");
+  }
   $("#style")?.addEventListener("change", (e) => {
     try { localStorage.setItem("captionStyle", e.target.value); } catch {}
     syncCaptionFx();
   });
   syncCaptionFx();
+  $("#segStylesContainer")?.addEventListener("change", () => {
+    syncSegCaptionFx();
+  });
+  syncSegCaptionFx();
 }
 
 // ---------- UI Announcements & Icons ----------
@@ -2487,6 +2738,8 @@ const scoreColor = (s) => (s >= 85 ? "var(--good)" : s >= 70 ? "var(--mid)" : "v
 const scoreWord = (s) => (s >= 85 ? "Viral" : s >= 70 ? "Strong" : "Good");
 
 function clipCard(c, jobId, i) {
+  const isSegment = !!(c.is_segment || c.part);
+  const partNum = c.part || (i + 1);
   const tags = (c.hashtags || []).map((h) => "#" + h).join(" ");
   const score = Math.max(0, Math.min(100, Math.round(+c.score || 0)));
   const isPreserved = !!(c.preserved || score >= 80);
@@ -2500,8 +2753,9 @@ function clipCard(c, jobId, i) {
   return `<li class="clip${isPreserved ? " preserved-clip" : ""}${isEdited ? " edited-clip" : ""}" data-clip="${esc(key)}" data-score="${score}" data-preserved="${isPreserved}" data-edited="${isEdited}">
     <div class="compact">
       <span class="okmark" aria-hidden="true">${ICON_CHECK}</span>
-      <span class="rank">#${i + 1}</span>
+      <span class="rank">${isSegment ? `Part ${partNum}` : `#${i + 1}`}</span>
       <span class="ctitle">${esc(c.title)}</span>
+      ${isSegment ? `<span class="badge-part">Part #${partNum}</span>` : ""}
       ${isPreserved ? `<span class="badge-preserved">★ 80+</span>` : ""}
       ${isEdited ? `<span class="badge-edited">✂️ Edited</span>` : ""}
       <span class="cstat" data-cstat="${esc(key)}"></span>
@@ -2520,10 +2774,11 @@ function clipCard(c, jobId, i) {
     </div>
     <div class="info">
       <div class="meta">
-        <span class="rank">#${i + 1}</span>
+        <span class="rank">${isSegment ? `Part ${partNum}` : `#${i + 1}`}</span>
+        ${isSegment ? `<span class="badge-part">Part #${partNum}</span>` : ""}
         <span class="pill">${Math.round(c.length)}s</span>
         <span class="pill">${esc(aspect)}</span>
-        <div class="scorebox ${scoreCls}" title="AI Virality Score: ${score}/100">
+        <div class="scorebox ${scoreCls}" title="${isSegment ? `Series Part ${partNum} of ${c.total_parts || 'Series'}` : `AI Virality Score: ${score}/100`}">
           <div class="score-dial">
             <svg viewBox="0 0 36 36" class="circular-chart">
               <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
@@ -2532,8 +2787,8 @@ function clipCard(c, jobId, i) {
             <span class="score-val">${score}</span>
           </div>
           <div class="score-info">
-            <span class="score-label">VIRALITY</span>
-            <span class="score-tag">${scoreTag}</span>
+            <span class="score-label">${isSegment ? "SERIES PART" : "VIRALITY"}</span>
+            <span class="score-tag">${isSegment ? `Part #${partNum}` : scoreTag}</span>
           </div>
         </div>
         ${isPreserved ? `<span class="badge-preserved">★ Vault</span>` : ""}
@@ -2650,6 +2905,7 @@ function updateTabCounts() {
 
 function jobBlock(j) {
   const busy = j.status === "queued" || j.status === "running";
+  const isSegment = !!(j.is_segment || j.options?.mode === "segment" || j.selection === "continuous");
   const name = j.title || j.upload || j.url;
   const open = isJobOpen(j);
   const n = (j.clips || []).length;
@@ -2662,7 +2918,7 @@ function jobBlock(j) {
   }
 
   const best = n ? Math.max(...j.clips.map((c) => Math.round(+c.score || 0))) : 0;
-  const picked = j.selection === "ollama" ? "AI Picks" : j.selection === "basic" ? "Basic Picks" : "";
+  const picked = isSegment ? "Continuous Cut" : j.selection === "ollama" ? "AI Picks" : j.selection === "basic" ? "Basic Picks" : "";
   const thumb = n ? `<img class="job-thumb" src="${esc(j.clips[0].thumb)}" alt="" loading="lazy">`
     : `<span class="job-thumb ph">${busy ? '<span class="spin"></span>' : ICON_FILE}</span>`;
   const status = busy ? `<span class="badge run">${j.status === "queued" ? "Queued" : "Processing"}</span>`
@@ -2670,10 +2926,10 @@ function jobBlock(j) {
   const chips = [
     `<span class="chip">${j.upload ? ICON_FILE + "File" : ICON_YT + "YouTube"}</span>`,
     j.created ? `<span class="chip">${ago(j.created)}</span>` : "",
-    picked ? `<span class="chip">${ICON_SPARK}${picked}</span>` : "",
+    isSegment ? `<span class="chip" style="background:#ecfdf5;color:#047857;font-weight:700;">✂️ Sliced Parts</span>` : (picked ? `<span class="chip">${ICON_SPARK}${picked}</span>` : ""),
   ].join("");
   const stats = n ? `<dl class="stats">
-      <div><dt>Clips</dt><dd>${matchingClips.length !== n ? `${matchingClips.length}/${n}` : n}</dd></div>
+      <div><dt>${isSegment ? "Parts" : "Clips"}</dt><dd>${matchingClips.length !== n ? `${matchingClips.length}/${n}` : n}</dd></div>
       <div><dt>Posted</dt><dd data-posted="${esc(j.id)}">${postedCount(j)}</dd></div>
       <div><dt>Score</dt><dd style="color:${scoreColor(best)}">${best}</dd></div>
     </dl>` : "";
@@ -2705,24 +2961,63 @@ function jobBlock(j) {
 
 // ---------- Render Studio Active Area & Library ----------
 function renderStudioActive() {
-  if (!studioActiveEl) return;
   const activeJob = jobs.find((j) => j.status === "queued" || j.status === "running");
-  if (!activeJob) {
-    studioActiveEl.innerHTML = "";
-    return;
+  const isSegmentJob = (j) => !!(j && (j.options?.mode === "segment" || j.selection === "continuous" || j.is_segment));
+
+  if (studioActiveEl) {
+    if (!activeJob) {
+      studioActiveEl.innerHTML = "";
+    } else if (isSegmentJob(activeJob)) {
+      studioActiveEl.innerHTML = `<div class="active-section-head">
+        <h3><span>✂️ Cut in Clip Studio Active:</span> Slicing continuous video series</h3>
+        <button class="btn-view-library" type="button" onclick="switchMainTab('segment')">Switch to Cut in Clip Studio →</button>
+      </div>
+      ${jobProgressHtml(activeJob)}`;
+    } else {
+      const name = activeJob.title || activeJob.upload || activeJob.url;
+      const clips = activeJob.clips || [];
+      studioActiveEl.innerHTML = `<div class="active-section-head">
+        <h3><span>⚡ Currently Processing:</span> ${esc(name)}</h3>
+        <button class="btn-view-library" type="button" id="btnGoLib">View all in Project Library →</button>
+      </div>
+      ${jobProgressHtml(activeJob)}
+      ${activeJob.status === "error" ? `<div class="note err">${esc(activeJob.error)}</div>` : ""}
+      ${clips.length ? `<ul class="grid">${clips.map((c, i) => clipCard(c, activeJob.id, i)).join("")}</ul>` : ""}`;
+      $("#btnGoLib")?.addEventListener("click", () => switchMainTab("library"));
+    }
   }
-  const name = activeJob.title || activeJob.upload || activeJob.url;
-  const clips = activeJob.clips || [];
 
-  studioActiveEl.innerHTML = `<div class="active-section-head">
-    <h3><span>⚡ Currently Processing:</span> ${esc(name)}</h3>
-    <button class="btn-view-library" type="button" id="btnGoLib">View all in Project Library →</button>
-  </div>
-  ${jobProgressHtml(activeJob)}
-  ${activeJob.status === "error" ? `<div class="note err">${esc(activeJob.error)}</div>` : ""}
-  ${clips.length ? `<ul class="grid">${clips.map((c, i) => clipCard(c, activeJob.id, i)).join("")}</ul>` : ""}`;
-
-  $("#btnGoLib")?.addEventListener("click", () => switchMainTab("library"));
+  if (segActiveEl) {
+    if (activeJob && isSegmentJob(activeJob)) {
+      const name = activeJob.title || activeJob.upload || activeJob.url;
+      const clips = activeJob.clips || [];
+      segActiveEl.innerHTML = `<div class="active-section-head">
+        <h3><span>✂️ Currently Slicing:</span> ${esc(name)}</h3>
+        <button class="btn-view-library" type="button" id="btnGoLibFromSeg">View all in Project Library →</button>
+      </div>
+      ${jobProgressHtml(activeJob)}
+      ${activeJob.status === "error" ? `<div class="note err">${esc(activeJob.error)}</div>` : ""}
+      ${clips.length ? `<ul class="grid">${clips.map((c, i) => clipCard(c, activeJob.id, i)).join("")}</ul>` : ""}`;
+      $("#btnGoLibFromSeg")?.addEventListener("click", () => switchMainTab("library"));
+    } else {
+      const latestSegJob = jobs.find((j) => isSegmentJob(j) && j.status !== "queued" && j.status !== "running");
+      if (latestSegJob) {
+        const name = latestSegJob.title || latestSegJob.upload || latestSegJob.url;
+        const clips = latestSegJob.clips || [];
+        segActiveEl.innerHTML = `<div class="active-section-head">
+          <h3><span>✂️ Latest Sliced Series:</span> ${esc(name)}</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${clips.length ? `<a class="ghost" href="/api/jobs/${esc(latestSegJob.id)}/zip" download style="display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;background:#fff;border:1.5px solid var(--border);border-radius:8px;font-weight:600;text-decoration:none;color:#1e293b;">📦 Download All Parts (ZIP)</a>` : ""}
+            <button class="btn-view-library" type="button" id="btnGoLibFromSegDone">View in Project Library →</button>
+          </div>
+        </div>
+        ${clips.length ? `<ul class="grid">${clips.map((c, i) => clipCard(c, latestSegJob.id, i)).join("")}</ul>` : ""}`;
+        $("#btnGoLibFromSegDone")?.addEventListener("click", () => switchMainTab("library"));
+      } else {
+        segActiveEl.innerHTML = "";
+      }
+    }
+  }
 }
 
 function render() {
@@ -2786,6 +3081,12 @@ async function refresh() {
     goBtn.disabled = active;
     const lbl = goBtn.querySelector(".go-label");
     if (lbl) lbl.textContent = active ? "Processing Video…" : "Get clips";
+  }
+  const segGoBtn = $("#segGo");
+  if (segGoBtn) {
+    segGoBtn.disabled = active;
+    const lbl = segGoBtn.querySelector(".go-label");
+    if (lbl) lbl.textContent = active ? "Slicing Shorts…" : "Slice Video into Continuous Shorts";
   }
 }
 
@@ -2884,6 +3185,134 @@ function showFile() {
 function clearFile() { if ($("#file")) $("#file").value = ""; showFile(); }
 $("#file")?.addEventListener("change", showFile);
 $("#clearfile")?.addEventListener("click", () => { clearFile(); $("#file").focus(); });
+
+// ---------- Cut in Clip Studio (Continuous Slicer) Handlers ----------
+document.querySelectorAll('input[name="segLen"]').forEach((r) => {
+  r.addEventListener("change", (e) => {
+    const box = $("#segCustomBox");
+    if (box) box.style.display = e.target.value === "custom" ? "flex" : "none";
+  });
+});
+
+const SEG_DROP_DEFAULT = $("#segDropText")?.innerHTML;
+function showSegFile() {
+  const f = $("#segFile")?.files[0];
+  if ($("#segUrl")) $("#segUrl").required = !f;
+  if ($("#segClearFile")) $("#segClearFile").hidden = !f;
+  if ($("#segDropText")) {
+    $("#segDropText").innerHTML = f
+      ? `<b>${esc(f.name)}</b><span>${(f.size / 1048576).toFixed(1)} MB · ready to slice</span>`
+      : SEG_DROP_DEFAULT;
+  }
+}
+function clearSegFile() {
+  if ($("#segFile")) $("#segFile").value = "";
+  showSegFile();
+}
+$("#segFile")?.addEventListener("change", showSegFile);
+$("#segClearFile")?.addEventListener("click", () => { clearSegFile(); $("#segFile")?.focus(); });
+
+["dragenter", "dragover"].forEach((t) => $("#segDrop")?.addEventListener(t, (e) => { e.preventDefault(); $("#segDrop")?.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => $("#segDrop")?.addEventListener(t, () => $("#segDrop")?.classList.remove("over")));
+
+function segFormError(msg, field) {
+  const el = $("#segFormErr");
+  if (el) el.textContent = msg;
+  if (field) { field.setAttribute("aria-invalid", "true"); field.focus(); }
+}
+for (const id of ["segUrl", "segFrom", "segTo", "segCustomLen", "segSeriesTitle"]) $("#" + id)?.addEventListener("input", (e) => e.target.removeAttribute("aria-invalid"));
+
+$("#segForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("#segFormErr").textContent = "";
+
+  const segChoice = radio("segLen") || "60";
+  let segment_len = 60;
+  if (segChoice === "custom") {
+    segment_len = parseInt($("#segCustomLen")?.value || "60", 10);
+    if (isNaN(segment_len) || segment_len < 15 || segment_len > 180) {
+      return segFormError("Custom length must be between 15 and 180 seconds.", $("#segCustomLen"));
+    }
+  } else {
+    segment_len = parseInt(segChoice, 10);
+  }
+
+  const file = $("#segFile")?.files[0];
+  let start_time, end_time;
+  try { start_time = parseClock($("#segFrom")?.value || "", "From"); } catch (err) { return segFormError(err.message, $("#segFrom")); }
+  try { end_time = parseClock($("#segTo")?.value || "", "To"); } catch (err) { return segFormError(err.message, $("#segTo")); }
+  if (!file && !$("#segUrl")?.value.trim()) return segFormError("Paste a YouTube link or select a video file to cut.", $("#segUrl"));
+  if (!file && !$("#segUrl")?.checkValidity()) return segFormError("Please enter a valid link starting with https://", $("#segUrl"));
+
+  const series_title = $("#segSeriesTitle")?.value.trim() || undefined;
+
+  try {
+    if (file) {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("mode", "segment");
+      fd.append("segment_len", segment_len);
+      if (series_title) fd.append("series_title", series_title);
+      for (const [k, v] of Object.entries({
+        style: radio("segStyle") || "hormozi",
+        layout: $("#segLayout")?.value || "auto",
+        aspect: radio("segAspect") || "9:16",
+        hook: $("#segHook")?.checked ?? true,
+        trim_pauses: $("#segTrim")?.checked ?? true,
+        ...segCaptionFx(),
+        start_time, end_time,
+      })) if (v !== null && v !== undefined) fd.append(k, v);
+
+      $("#segGo").disabled = true;
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/jobs/upload");
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            const lbl = $("#segGo")?.querySelector(".go-label");
+            if (lbl) lbl.textContent = `Uploading ${Math.round(100 * ev.loaded / ev.total)}%`;
+          }
+        };
+        xhr.onload = () => {
+          let data = {}; try { data = JSON.parse(xhr.responseText); } catch {}
+          if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+          else reject(new Error(typeof data.detail === "string" ? data.detail : `Upload failed (${xhr.status})`));
+        };
+        xhr.onerror = () => reject(new Error("Upload failed. Is the server running?"));
+        xhr.send(fd);
+      }).finally(() => {
+        $("#segGo").disabled = false;
+        const lbl = $("#segGo")?.querySelector(".go-label");
+        if (lbl) lbl.textContent = "Slice Video into Continuous Shorts";
+      });
+      clearSegFile();
+      await refresh();
+      toast("Video uploaded! Slicing into continuous shorts...");
+      return;
+    }
+
+    await api("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "segment",
+        url: $("#segUrl").value.trim(),
+        segment_len,
+        series_title: series_title || undefined,
+        style: radio("segStyle") || "hormozi",
+        layout: $("#segLayout")?.value || "auto",
+        aspect: radio("segAspect") || "9:16",
+        hook: $("#segHook")?.checked ?? true,
+        trim_pauses: $("#segTrim")?.checked ?? true,
+        ...segCaptionFx(),
+        start_time, end_time,
+      }),
+    });
+    $("#segUrl").value = "";
+    await refresh();
+    toast("Continuous slicing job started!");
+  } catch (err) { segFormError(err.message); }
+});
 
 // ---------- Toast Notification ----------
 function toast(msg) {

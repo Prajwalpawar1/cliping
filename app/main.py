@@ -82,6 +82,9 @@ class JobRequest(BaseModel):
     trim_pauses: bool = True
     highlight_keywords: bool = False  # colour + pop the key word of each caption group
     emoji: bool = False  # with highlight_keywords: add an emoji from a small local map
+    mode: str = "viral"  # "viral" (AI highlight moments) or "segment" (continuous sequential shorts)
+    segment_len: int = Field(default=60, ge=10, le=300)
+    series_title: str | None = Field(default=None, max_length=300)
 
 
 _JOB_ID = re.compile(r"[0-9a-f]{10}")  # uuid4().hex[:10], see _new_job
@@ -226,50 +229,133 @@ def _run(job_id: str, req: JobRequest) -> None:
             src = source.download(req.url, workdir, progress)
         _update(job_id, title=src.title, duration=src.duration, transcript_source=src.transcript_source)
 
-        progress(42, "Finding the best moments")
-        sentences = selector.within(selector.to_sentences(src.words), req.start_time, req.end_time)
-        clips, method, warning = selector.select(
-            sentences, src.title, req.clip_count, req.min_len, req.max_len, progress, prompt=req.prompt
-        ) if sentences else ([], "basic", None)
-        if not clips:
-            ranged = req.start_time is not None or req.end_time is not None
-            where = (
-                f"between {_clock(req.start_time or 0)} and "
-                f"{_clock(req.end_time) if req.end_time is not None else 'the end'} of this video"
-                if ranged else "in this video"
-            )
-            raise RuntimeError(
-                f"No stretch of speech between {req.min_len} and {req.max_len} seconds was found {where}."
-            )
-        _update(job_id, selection=method, warning=warning)
+        if req.mode == "segment":
+            progress(42, "Calculating continuous time slices")
+            t_start = max(0.0, req.start_time or 0.0)
+            t_end = min(src.duration, req.end_time) if req.end_time is not None else src.duration
+            if t_end <= t_start + 5.0:
+                raise RuntimeError("The video or selected range is too short (must be at least 5s).")
+            target_len = max(15.0, min(180.0, float(req.segment_len or 60)))
 
-        done: list[dict] = []
-        for i, clip in enumerate(clips):
-            progress(45 + 54 * i / len(clips), f"Rendering clip {i + 1} of {len(clips)}")
-            start, end = _render_bounds(
-                clip.start, clip.end, src.words, src.duration, req.start_time, req.end_time
-            )
-            name = f"clip_{i + 1:02d}"
-            keep = trim.plan(src.video_path, src.words, start, end) if req.trim_pauses else None
-            info = render.render_clip(
-                src.video_path, src.words, start, end, workdir, name,
-                style=req.style, layout=req.layout, hook=clip.hook if req.hook else None, aspect=req.aspect,
-                keep=keep, highlight=req.highlight_keywords, emoji=req.emoji,
-            )
-            done.append(
-                asdict(clip)
-                | {
-                    "start": round(start, 2),
-                    "end": round(end, 2),
-                    "length": round(info.get("length", end - start), 1),
+            raw_cuts = []
+            curr = t_start
+            while curr < t_end - 5.0:
+                nxt = min(t_end, curr + target_len)
+                if t_end - nxt < 15.0:
+                    nxt = t_end
+                raw_cuts.append([round(curr, 2), round(nxt, 2)])
+                curr = nxt
+            if not raw_cuts:
+                raw_cuts = [[round(t_start, 2), round(t_end, 2)]]
+
+            # Snap internal cut points to natural word/sentence pauses if available
+            segments = []
+            for i in range(len(raw_cuts)):
+                cs, ce = raw_cuts[i]
+                if i < len(raw_cuts) - 1 and src.words:
+                    pause_candidates = [
+                        (w.end, next_w.start)
+                        for w, next_w in zip(src.words[:-1], src.words[1:])
+                        if abs(w.end - ce) <= 4.0 and (next_w.start - w.end) >= 0.15
+                    ]
+                    if pause_candidates:
+                        best_pause = min(pause_candidates, key=lambda p: abs(p[0] - ce))
+                        snap_point = round((best_pause[0] + best_pause[1]) / 2, 2)
+                        ce = snap_point
+                        raw_cuts[i + 1][0] = snap_point
+                segments.append((cs, ce))
+
+            total_parts = len(segments)
+            base_title = req.series_title.strip() if req.series_title and req.series_title.strip() else src.title
+            _update(job_id, selection="continuous", total_parts=total_parts, is_segment=True)
+
+            done: list[dict] = []
+            for i, (seg_start, seg_end) in enumerate(segments):
+                part_num = i + 1
+                progress(45 + 50 * i / total_parts, f"Rendering Part {part_num} of {total_parts}")
+                title = f"{base_title} (Part {part_num})"
+                hook = f"Part {part_num} of {total_parts}: {base_title}" if req.hook else None
+                clean_name = re.sub(r'[^\w\s]', '', base_title).strip()
+                tag = re.sub(r'\s+', '', clean_name)[:15]
+                description = (
+                    f"Part {part_num} of {total_parts} of {base_title}. Continuous shorts series cut for YouTube Shorts and Instagram Reels.\n\n"
+                    f"Subscribe for Part {part_num + 1}!\n#{tag} #Shorts #Reels #ViralShorts"
+                )
+                hashtags = ["Shorts", "Reels", f"Part{part_num}", "Viral"] + ([tag] if tag else [])
+                reason = f"Continuous video segment Part {part_num} of {total_parts} ({round(seg_end - seg_start)}s). Sliced for YouTube Shorts & Instagram Reels standard timing."
+                name = f"clip_{part_num:02d}"
+                keep = trim.plan(src.video_path, src.words, seg_start, seg_end) if req.trim_pauses else None
+                info = render.render_clip(
+                    src.video_path, src.words, seg_start, seg_end, workdir, name,
+                    style=req.style, layout=req.layout, hook=hook, aspect=req.aspect,
+                    keep=keep, highlight=req.highlight_keywords, emoji=req.emoji,
+                )
+                done.append({
+                    "start": round(seg_start, 2),
+                    "end": round(seg_end, 2),
+                    "title": title,
+                    "hook": hook,
+                    "score": 90,
+                    "reason": reason,
+                    "description": description,
+                    "hashtags": hashtags,
+                    "part": part_num,
+                    "total_parts": total_parts,
+                    "length": round(info.get("length", seg_end - seg_start), 1),
                     "video": f"/media/{job_id}/{name}.mp4",
                     "thumb": f"/media/{job_id}/{name}.jpg",
                     "layout": info["layout"],
                     "aspect": req.aspect,
-                    "preserved": bool(clip.score >= 80),
-                }
-            )
-            _update(job_id, clips=list(done))
+                    "style": req.style,
+                    "preserved": True,
+                    "is_segment": True,
+                })
+                _update(job_id, clips=list(done))
+        else:
+            progress(42, "Finding the best moments")
+            sentences = selector.within(selector.to_sentences(src.words), req.start_time, req.end_time)
+            clips, method, warning = selector.select(
+                sentences, src.title, req.clip_count, req.min_len, req.max_len, progress, prompt=req.prompt
+            ) if sentences else ([], "basic", None)
+            if not clips:
+                ranged = req.start_time is not None or req.end_time is not None
+                where = (
+                    f"between {_clock(req.start_time or 0)} and "
+                    f"{_clock(req.end_time) if req.end_time is not None else 'the end'} of this video"
+                    if ranged else "in this video"
+                )
+                raise RuntimeError(
+                    f"No stretch of speech between {req.min_len} and {req.max_len} seconds was found {where}."
+                )
+            _update(job_id, selection=method, warning=warning)
+
+            done: list[dict] = []
+            for i, clip in enumerate(clips):
+                progress(45 + 54 * i / len(clips), f"Rendering clip {i + 1} of {len(clips)}")
+                start, end = _render_bounds(
+                    clip.start, clip.end, src.words, src.duration, req.start_time, req.end_time
+                )
+                name = f"clip_{i + 1:02d}"
+                keep = trim.plan(src.video_path, src.words, start, end) if req.trim_pauses else None
+                info = render.render_clip(
+                    src.video_path, src.words, start, end, workdir, name,
+                    style=req.style, layout=req.layout, hook=clip.hook if req.hook else None, aspect=req.aspect,
+                    keep=keep, highlight=req.highlight_keywords, emoji=req.emoji,
+                )
+                done.append(
+                    asdict(clip)
+                    | {
+                        "start": round(start, 2),
+                        "end": round(end, 2),
+                        "length": round(info.get("length", end - start), 1),
+                        "video": f"/media/{job_id}/{name}.mp4",
+                        "thumb": f"/media/{job_id}/{name}.jpg",
+                        "layout": info["layout"],
+                        "aspect": req.aspect,
+                        "preserved": bool(clip.score >= 80),
+                    }
+                )
+                _update(job_id, clips=list(done))
 
         # Keep the source video and its transcript so a clip can be re-cut later
         # in the clip editor; both go when the job is deleted.
@@ -302,8 +388,12 @@ def status() -> dict:
 
 
 def _check_options(req: JobRequest) -> None:
-    if req.min_len >= req.max_len:
-        raise HTTPException(400, "Minimum length must be shorter than maximum length.")
+    if req.mode == "segment":
+        if not (10 <= req.segment_len <= 300):
+            raise HTTPException(400, "Segment length must be between 10 and 300 seconds.")
+    else:
+        if req.min_len >= req.max_len:
+            raise HTTPException(400, "Minimum length must be shorter than maximum length.")
     if req.style not in render.STYLES:
         raise HTTPException(400, "Unknown caption style.")
     if req.layout not in ("auto", "fill", "fit", "split", "podcast"):
@@ -356,6 +446,9 @@ async def upload_job(
     trim_pauses: bool = Form(True),
     highlight_keywords: bool = Form(False),
     emoji: bool = Form(False),
+    mode: str = Form("viral"),
+    segment_len: int = Form(60),
+    series_title: str | None = Form(None),
 ) -> dict:
     name = Path(file.filename or "").name
     ext = Path(name).suffix.lower()
@@ -365,7 +458,8 @@ async def upload_job(
         req = JobRequest(url="", clip_count=clip_count, min_len=min_len, max_len=max_len,
                          style=style, layout=layout, hook=hook,
                          prompt=prompt, start_time=start_time, end_time=end_time, aspect=aspect,
-                         trim_pauses=trim_pauses, highlight_keywords=highlight_keywords, emoji=emoji)
+                         trim_pauses=trim_pauses, highlight_keywords=highlight_keywords, emoji=emoji,
+                         mode=mode, segment_len=segment_len, series_title=series_title)
     except ValidationError as exc:
         raise HTTPException(422, str(exc)) from None
     _check_options(req)
