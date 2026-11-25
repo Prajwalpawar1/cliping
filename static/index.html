@@ -920,6 +920,25 @@
   .post.again { background: #fffbeb; color: #b45309; border-color: #fde68a; }
   .post.again:hover { background: #fef3c7; }
   .post:disabled { opacity: .5; cursor: not-allowed; }
+  .post.igpost { background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
+  .post.igpost:hover { background: #fce7f3; }
+  .post.igpost.again { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
+  .btn-ig-gradient {
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    color: #ffffff;
+    border: 0;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.15s ease;
+  }
+  .btn-ig-gradient:hover { opacity: 0.92; color: #fff; }
+  .s-tab.posted-ig-tab.active { background: #fdf2f8; color: #be185d; border-color: #fbcfe8; }
   .info .actions .more { flex: none; width: 40px; padding: 0; margin-left: auto; background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
   .info .actions .more:hover { color: var(--text); background: var(--panel-2); }
 
@@ -1898,6 +1917,10 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
           Published to YouTube <span class="tab-count" id="tabCountPosted">0</span>
         </button>
+        <button class="s-tab posted-ig-tab" id="tabPostedIG" data-tab="posted_ig" role="tab" aria-selected="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          Published to Instagram <span class="tab-count" id="tabCountPostedIG">0</span>
+        </button>
       </div>
       <div class="studio-tools">
         <div class="search-box">
@@ -1958,6 +1981,64 @@
           <a href="/api/youtube/connect" class="btn-conn-primary" id="btnConnectYT">Connect YouTube</a>
           <button type="button" class="btn-conn-danger" id="btnDisconnectYT" hidden>Disconnect</button>
           <a href="https://github.com/AbdulSamad94/clipsmith/blob/main/docs/youtube-setup.md" target="_blank" rel="noopener" class="ghost" style="margin-left:auto;">Setup Guide ↗</a>
+        </div>
+      </div>
+
+      <!-- Card: Instagram Account & Reels Automation -->
+      <div class="conn-card" id="cardInstagram">
+        <div class="conn-head">
+          <div class="conn-icon-title">
+            <span class="conn-icon" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+            </span>
+            <div>
+              <h3 class="conn-title">Instagram Account</h3>
+              <small style="color:var(--text-muted);">Direct Reels Publishing &amp; Auto-Sharing</small>
+            </div>
+          </div>
+          <span class="conn-status-badge off" id="igCardBadge">Checking…</span>
+        </div>
+
+        <div class="conn-body">
+          <p id="igCardDesc">Connect your Instagram account to automatically upload and publish vertical Reels directly from ASG Clipping.</p>
+
+          <div class="conn-stat-row" id="igProfileRow" hidden>
+            <div>
+              <span style="font-size:12px;color:var(--text-muted);display:block;">Connected Profile</span>
+              <b id="igAccountUsername" style="font-size:14px;color:#c026d3;">@creator</b>
+              <div id="igAccountFullName" style="font-size:12.5px;color:#475569;">Creator Name</div>
+            </div>
+            <div id="igConnectedTime" style="font-size:11.5px;color:var(--good);font-weight:600;">Active</div>
+          </div>
+
+          <!-- Inline Login Box -->
+          <div class="ck-inline-box" id="igLoginBox" style="background:var(--panel-2);border-radius:10px;padding:14px;margin-top:10px;">
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <button type="button" class="sp-btn active" id="btnIgModeCreds" style="padding:4px 10px;font-size:12px;">Login with ID</button>
+              <button type="button" class="sp-btn" id="btnIgModeSession" style="padding:4px 10px;font-size:12px;">Session ID Cookie</button>
+            </div>
+            <div id="igCredsFields">
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px;">Instagram Username or Email:</label>
+              <input type="text" id="igUsername" placeholder="your_instagram_id" autocomplete="username" style="width:100%;padding:8px 10px;font-size:13.5px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;">
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px;">Instagram Password:</label>
+              <input type="password" id="igPassword" placeholder="••••••••" autocomplete="current-password" style="width:100%;padding:8px 10px;font-size:13.5px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;">
+              <div id="ig2faArea" hidden>
+                <label style="font-size:12.5px;font-weight:600;display:block;color:#b45309;margin-bottom:4px;">Security / 2FA Code:</label>
+                <input type="text" id="ig2faCode" placeholder="6-digit verification code" style="width:100%;padding:8px 10px;font-size:13.5px;border:1px solid #fde68a;border-radius:6px;background:#fffbeb;margin-bottom:8px;">
+              </div>
+            </div>
+            <div id="igSessionFields" hidden>
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px;">Instagram Session ID Cookie:</label>
+              <input type="text" id="igSessionId" placeholder="sessionid cookie value" style="width:100%;padding:8px 10px;font-size:13.5px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;">
+              <small style="color:var(--text-muted);display:block;font-size:11.5px;">From browser cookies (Application &gt; Cookies &gt; instagram.com &gt; sessionid)</small>
+            </div>
+            <div id="igLoginMsg" style="font-size:12.5px;margin-top:6px;font-weight:600;"></div>
+          </div>
+        </div>
+
+        <div class="conn-actions" id="igCardActions">
+          <button type="button" class="btn-ig-gradient" id="btnConnectIG">Log In to Instagram</button>
+          <button type="button" class="btn-conn-danger" id="btnDisconnectIG" hidden>Disconnect Instagram</button>
         </div>
       </div>
 
@@ -2076,6 +2157,36 @@
     <label class="opt" id="ytLinkRow"><input type="checkbox" id="ytLink"> Add full video link to description</label>
     <div class="err" id="yterr" role="alert"></div>
     <div class="btns"><button type="button" class="ghost" id="ytCancel">Cancel</button><button type="submit" class="go" id="ytSubmit">Post</button></div>
+  </form>
+</dialog>
+
+<!-- Post to Instagram Reel Modal -->
+<dialog id="igdlg" aria-labelledby="igdlgTitle">
+  <form class="dlg" id="igform" method="dialog">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <span style="display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;font-size:18px;">📸</span>
+      <div>
+        <h2 id="igdlgTitle" style="margin:0;font-size:18px;">Post to Instagram Reel <span class="sub" id="iguser"></span></h2>
+        <small style="color:var(--text-muted);">Auto-publishing vertical short-form Reel</small>
+      </div>
+    </div>
+    <div class="note" style="background:#fdf2f8;border-color:#fbcfe8;color:#9d174d;font-size:13px;padding:8px 12px;margin-bottom:12px;">
+      📱 <b>Instagram Reels Ready:</b> Video will be posted to your connected Instagram profile as a vertical Reel with viral hashtags and caption.
+    </div>
+    <div>
+      <label class="lbl" for="igCaption">Reel Caption <span class="count" id="igCount">0/2200</span></label>
+      <textarea id="igCaption" maxlength="2200" rows="4" placeholder="Write an engaging caption for your Reel..."></textarea>
+    </div>
+    <div>
+      <label class="lbl" for="igTags">Hashtags (up to 30)</label>
+      <input type="text" id="igTags" placeholder="#reels #explorepage #viral #trending" aria-describedby="igTagsHint">
+      <p class="field-hint" id="igTagsHint">Space-separated hashtags. Instagram optimizes distribution for relevant tags.</p>
+    </div>
+    <div class="err" id="igerr" role="alert"></div>
+    <div class="btns">
+      <button type="button" class="ghost" id="igCancel">Cancel</button>
+      <button type="submit" class="btn-ig-gradient" id="igSubmit">Publish to Instagram Reel</button>
+    </div>
   </form>
 </dialog>
 
@@ -2391,6 +2502,7 @@ async function init() {
   showConnectResult();
   await loadCookies();
   await loadYouTube();
+  await loadInstagram();
   await refresh();
 }
 
@@ -2453,6 +2565,130 @@ function showConnectResult() {
     : `<div class="note err">YouTube wasn't connected${why === "access_denied" ? " (permission was declined)" : why === "expired" ? " (sign-in link expired, try again)" : ""}.</div>`;
   history.replaceState(null, "", location.pathname);
 }
+
+// ---------- Instagram Status & Account Info ----------
+let ig = { configured: true, connected: false, account: null };
+
+async function loadInstagram() {
+  try { ig = await api("/api/instagram"); } catch { return; }
+  const igCardBadge = $("#igCardBadge");
+  const igProfileRow = $("#igProfileRow");
+  const igUsernameEl = $("#igAccountUsername");
+  const igFullNameEl = $("#igAccountFullName");
+  const igConnectedTimeEl = $("#igConnectedTime");
+  const igLoginBox = $("#igLoginBox");
+  const btnConnectIG = $("#btnConnectIG");
+  const btnDisconnectIG = $("#btnDisconnectIG");
+
+  if (!ig.connected) {
+    if (igCardBadge) { igCardBadge.textContent = "Not Connected"; igCardBadge.className = "conn-status-badge off"; }
+    if (igProfileRow) igProfileRow.hidden = true;
+    if (igLoginBox) igLoginBox.hidden = false;
+    if (btnConnectIG) btnConnectIG.hidden = false;
+    if (btnDisconnectIG) btnDisconnectIG.hidden = true;
+  } else {
+    const acc = ig.account || {};
+    const handle = `@${acc.username || "creator"}`;
+    if (igCardBadge) { igCardBadge.textContent = `Connected (${handle})`; igCardBadge.className = "conn-status-badge on"; }
+    if (igProfileRow) {
+      igProfileRow.hidden = false;
+      if (igUsernameEl) igUsernameEl.textContent = handle;
+      if (igFullNameEl) igFullNameEl.textContent = acc.full_name || acc.username || "";
+      if (igConnectedTimeEl) igConnectedTimeEl.textContent = acc.connected_at ? `Connected on ${acc.connected_at}` : "Active";
+    }
+    if (igLoginBox) igLoginBox.hidden = true;
+    if (btnConnectIG) btnConnectIG.hidden = true;
+    if (btnDisconnectIG) btnDisconnectIG.hidden = false;
+  }
+}
+
+// Instagram Login Handlers
+let igLoginMode = "creds";
+$("#btnIgModeCreds")?.addEventListener("click", () => {
+  igLoginMode = "creds";
+  $("#btnIgModeCreds").classList.add("active");
+  $("#btnIgModeSession")?.classList.remove("active");
+  if ($("#igCredsFields")) $("#igCredsFields").hidden = false;
+  if ($("#igSessionFields")) $("#igSessionFields").hidden = true;
+  if ($("#igLoginMsg")) $("#igLoginMsg").textContent = "";
+});
+$("#btnIgModeSession")?.addEventListener("click", () => {
+  igLoginMode = "session";
+  $("#btnIgModeSession").classList.add("active");
+  $("#btnIgModeCreds")?.classList.remove("active");
+  if ($("#igCredsFields")) $("#igCredsFields").hidden = true;
+  if ($("#igSessionFields")) $("#igSessionFields").hidden = false;
+  if ($("#igLoginMsg")) $("#igLoginMsg").textContent = "";
+});
+
+$("#btnConnectIG")?.addEventListener("click", async () => {
+  const msgEl = $("#igLoginMsg");
+  const btn = $("#btnConnectIG");
+  if (msgEl) {
+    msgEl.style.color = "var(--text-muted)";
+    msgEl.textContent = "Authenticating with Instagram…";
+  }
+  btn.disabled = true;
+
+  try {
+    let payload = {};
+    if (igLoginMode === "session") {
+      const sess = $("#igSessionId")?.value.trim();
+      if (!sess) throw new Error("Please enter your Instagram session ID cookie.");
+      payload = { sessionid: sess };
+    } else {
+      const u = $("#igUsername")?.value.trim();
+      const p = $("#igPassword")?.value;
+      const code = $("#ig2faCode")?.value.trim() || null;
+      if (!u) throw new Error("Please enter your Instagram username.");
+      if (!p) throw new Error("Please enter your Instagram password.");
+      payload = { username: u, password: p, verification_code: code };
+    }
+
+    const res = await api("/api/instagram/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.status === "2fa_required") {
+      if ($("#ig2faArea")) $("#ig2faArea").hidden = false;
+      if (msgEl) {
+        msgEl.style.color = "#d97706";
+        msgEl.textContent = "2FA Code Required: Enter the 6-digit code and click Log In again.";
+      }
+      $("#ig2faCode")?.focus();
+      return;
+    }
+
+    if (msgEl) {
+      msgEl.style.color = "var(--good)";
+      msgEl.textContent = "✓ Logged in successfully!";
+    }
+    if ($("#igPassword")) $("#igPassword").value = "";
+    if ($("#ig2faArea")) $("#ig2faArea").hidden = true;
+    await loadInstagram();
+    toast(`Connected Instagram as @${res.account?.username || "creator"}`);
+  } catch (err) {
+    if (msgEl) {
+      msgEl.style.color = "var(--bad)";
+      msgEl.textContent = `✕ ${err.message}`;
+    }
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("#btnDisconnectIG")?.addEventListener("click", async () => {
+  if (!confirm("Disconnect Instagram? ASG Clipping will remove your stored login session.")) return;
+  try {
+    await api("/api/instagram/disconnect", { method: "POST" });
+    await loadInstagram();
+    toast("Instagram disconnected.");
+  } catch (err) {
+    alert(err.message);
+  }
+});
 
 // ---------- YouTube Cookies (Bot Check Bypass) ----------
 let cookies = { set: false, source: null, added: null };
@@ -2737,6 +2973,7 @@ function updateYouTubeStatus() {
     document.querySelectorAll(`[data-posted="${j.id}"]`).forEach((pc) => (pc.textContent = postedCount(j)));
   }
   renderTray();
+  updateInstagramStatus();
 }
 
 function applyFold(jobId, i, c) {
@@ -2759,6 +2996,57 @@ function toggleFold(key) {
   const nowFolded = !foldPref.get(key);
   foldPref.set(key, nowFolded);
   applyFold(jobId, +i, job.clips[+i]);
+}
+
+// ---------- Instagram Status under Clips ----------
+const igBusy = (c) => c.instagram && (c.instagram.status === "queued" || c.instagram.status === "uploading");
+const igState = (c) => (c.instagram ? c.instagram.status : "none");
+
+function igStatusHtml(s) {
+  if (!s || s.status === "none") return "";
+  if (s.status === "queued" || s.status === "uploading") {
+    const p = s.status === "uploading" ? (s.progress || 0) : 0;
+    const label = s.status === "queued" ? "Preparing Reel" : p >= 100 ? "Finalizing on Instagram" : "Uploading Reel to Instagram";
+    return `<div class="yt-box busy" style="border-color:#fbcfe8;background:#fdf2f8;">
+      <div class="yt-row"><span class="yt-title" style="color:#be185d;"><span class="spin" aria-hidden="true"></span><span>${label}</span></span><span class="yt-pct" style="color:#9d174d;">${p}%</span></div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p}"><div style="width:${p}%;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#bc1888);"></div></div>
+      <div class="yt-hint" style="color:#be185d;">Keep ASG Clipping open until Reel publishing finishes.</div></div>`;
+  }
+  if (s.status === "error") {
+    return `<div class="yt-box err" style="border-color:#fbcfe8;background:#fdf2f8;">${ICON_ALERT}<div><b style="color:#9d174d;">Couldn't post to Instagram</b><div style="color:#be185d;">${esc(s.error)}</div></div></div>`;
+  }
+  if (s.status === "done") {
+    const link = `<a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:#c026d3;font-weight:700;">Open Reel ↗</a>`;
+    return `<div class="yt-box ok" style="border-color:#fbcfe8;background:#fdf2f8;"><span style="color:#c026d3;">${ICON_CHECK}</span><div><b style="color:#86198f;">Posted to Instagram Reels</b><div>${link}</div></div></div>`;
+  }
+  return "";
+}
+
+function igPostButtonState(btn, c) {
+  const st = igState(c);
+  btn.hidden = st === "queued" || st === "uploading" || st === "done";
+  btn.classList.toggle("again", st === "done" || st === "error");
+  const txt = btn.querySelector(".igpost-txt");
+  if (txt) txt.textContent = st === "done" ? "Post Reel again" : st === "error" ? "Retry Reel" : "Post to Instagram";
+}
+
+function updateInstagramStatus() {
+  for (const j of jobs) {
+    (j.clips || []).forEach((c, i) => {
+      document.querySelectorAll(`[data-igstat="${j.id}:${i}"]`).forEach((st) => {
+        const state = igState(c);
+        if (st.dataset.state === state && state === "uploading") {
+          const p = c.instagram.progress || 0;
+          st.querySelector(".bar > div").style.width = p + "%";
+          st.querySelector(".yt-pct").textContent = p + "%";
+        } else if (st.dataset.state !== state) {
+          st.innerHTML = igStatusHtml(c.instagram);
+          st.dataset.state = state;
+        }
+      });
+      document.querySelectorAll(`[data-igpost="${j.id}:${i}"]`).forEach((btn) => igPostButtonState(btn, c));
+    });
+  }
 }
 
 // ---------- Upload Tray ----------
@@ -2881,10 +3169,13 @@ function clipCard(c, jobId, i) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg><span>Edit</span></button>
         <button class="post" type="button" data-post="${esc(jobId)}:${i}">
           <svg width="16" height="16" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="4" fill="#ef4444"/><path d="M10 9v6l5-3z" fill="#fff"/></svg><span class="post-txt">Post to YouTube</span></button>
+        <button class="post igpost" type="button" data-igpost="${esc(jobId)}:${i}">
+          <svg width="15" height="15" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="#c026d3"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1" fill="#fff"/><rect x="5.5" y="5.5" width="13" height="13" rx="3.5" fill="none" stroke="#fff" stroke-width="1.8"/></svg><span class="igpost-txt">Post to Instagram</span></button>
         <button class="more" type="button" data-more="${esc(jobId)}:${i}" aria-haspopup="menu" aria-label="More options">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
       </div>
       <div class="ytstat" data-ytstat="${esc(jobId)}:${i}"></div>
+      <div class="igstat" data-igstat="${esc(jobId)}:${i}"></div>
     </div>
   </li>`;
 }
@@ -2939,8 +3230,9 @@ function clipMatches(j, c) {
   const isEdited = !!(c.is_edited || (c.video && c.video.includes("_v")) || c.logo_file || c.edited_at);
   if (activeTab === "preserved" && !isPreserved) return false;
   if (activeTab === "edited" && !isEdited) return false;
-  if (activeTab === "action" && ytState(c) !== "error") return false;
+  if (activeTab === "action" && ytState(c) !== "error" && igState(c) !== "error") return false;
   if (activeTab === "posted" && ytState(c) !== "done") return false;
+  if (activeTab === "posted_ig" && igState(c) !== "done") return false;
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     const text = `${c.title || ""} ${c.hook || ""} ${c.reason || ""} ${(c.hashtags || []).join(" ")} ${j.title || ""}`.toLowerCase();
@@ -2950,7 +3242,7 @@ function clipMatches(j, c) {
 }
 
 function updateTabCounts() {
-  let countAll = 0, countEdited = 0, countPreserved = 0, countAction = 0, countPosted = 0;
+  let countAll = 0, countEdited = 0, countPreserved = 0, countAction = 0, countPosted = 0, countPostedIG = 0;
   for (const j of jobs) {
     if (j.status === "error") countAction++;
     for (const c of (j.clips || [])) {
@@ -2959,8 +3251,9 @@ function updateTabCounts() {
       if (isEdited) countEdited++;
       const sc = Math.max(0, Math.min(100, Math.round(+c.score || 0)));
       if (c.preserved || sc >= 80) countPreserved++;
-      if (c.youtube?.status === "error") countAction++;
+      if (c.youtube?.status === "error" || c.instagram?.status === "error") countAction++;
       if (c.youtube?.status === "done") countPosted++;
+      if (c.instagram?.status === "done") countPostedIG++;
     }
   }
   $("#tabCountAll").textContent = countAll;
@@ -2968,6 +3261,7 @@ function updateTabCounts() {
   $("#tabCountPreserved").textContent = countPreserved;
   $("#tabCountAction").textContent = countAction;
   $("#tabCountPosted").textContent = countPosted;
+  if ($("#tabCountPostedIG")) $("#tabCountPostedIG").textContent = countPostedIG;
   $("#hdrVaultCount").textContent = countPreserved;
   $("#navLibCount").textContent = jobs.length;
 }
@@ -3121,7 +3415,12 @@ function render() {
   } else if (activeTab === "action") {
     banner = `<div class="vault-hero-banner" style="background:#fff1f2;border-color:#fecdd3;">
       <h3 style="color:#be123c;">⚡ Action & Retry Queue</h3>
-      <p style="color:#881337;">Clips that faced YouTube channel rate limits ("uploadLimitExceeded") are queued here with titles, tags, and descriptions intact.</p>
+      <p style="color:#881337;">Clips that faced platform rate limits or errors are queued here with titles, tags, and descriptions intact.</p>
+    </div>`;
+  } else if (activeTab === "posted_ig") {
+    banner = `<div class="vault-hero-banner" style="background:#fdf2f8;border-color:#fbcfe8;">
+      <h3 style="color:#be185d;">📸 Published to Instagram Reels</h3>
+      <p style="color:#9d174d;">All vertical shorts published directly to your connected Instagram profile. Click 'Open Reel' to view and engage on Instagram.</p>
     </div>`;
   }
 
@@ -3138,13 +3437,15 @@ function render() {
       emptyHtml = `<div class="empty"><strong>Action queue is clear!</strong>No failed or rate-limited uploads pending.</div>`;
     } else if (activeTab === "posted") {
       emptyHtml = `<div class="empty"><strong>No clips published yet</strong>Click "Post to YouTube" on any clip to publish directly.</div>`;
+    } else if (activeTab === "posted_ig") {
+      emptyHtml = `<div class="empty"><strong>No clips published to Instagram yet</strong>Click "Post to Instagram" on any clip to publish directly.</div>`;
     } else {
       emptyHtml = `<div class="empty"><strong>No projects yet</strong>Create your first short in the Create Studio above!</div>`;
     }
   }
 
   const header = jobs.length
-    ? `<div class="jobs-head"><h2>${activeTab === "preserved" ? "Preserved Vault (Score ≥ 80)" : activeTab === "edited" ? "✂️ Edited Clips" : activeTab === "action" ? "Action Queue" : activeTab === "posted" ? "Published to YouTube" : "All Projects"}</h2><span>${jobs.length} project${jobs.length > 1 ? "s" : ""}</span></div>`
+    ? `<div class="jobs-head"><h2>${activeTab === "preserved" ? "Preserved Vault (Score ≥ 80)" : activeTab === "edited" ? "✂️ Edited Clips" : activeTab === "action" ? "Action Queue" : activeTab === "posted" ? "Published to YouTube" : activeTab === "posted_ig" ? "Published to Instagram Reels" : "All Projects"}</h2><span>${jobs.length} project${jobs.length > 1 ? "s" : ""}</span></div>`
     : "";
 
   if (jobsEl) jobsEl.innerHTML = banner + header + (renderedBlocks.length ? renderedBlocks.join("") : emptyHtml);
@@ -3155,7 +3456,7 @@ async function refresh() {
   try { jobs = await api("/api/jobs"); } catch { return; }
   render();
   const active = jobs.some((j) => j.status === "queued" || j.status === "running");
-  const uploading = jobs.some((j) => (j.clips || []).some(ytBusy));
+  const uploading = jobs.some((j) => (j.clips || []).some((c) => ytBusy(c) || igBusy(c)));
   clearTimeout(timer);
   if (active || uploading) timer = setTimeout(refresh, 1500);
   if (jobsEl) jobsEl.setAttribute("aria-busy", active ? "true" : "false");
@@ -3557,6 +3858,82 @@ $("#ytform")?.addEventListener("submit", async (e) => {
   }
 });
 
+// ---------- Post to Instagram Reel Modal Logic ----------
+let igPosting = null;
+
+function openInstagramPost(jobId, index) {
+  const job = jobs.find((j) => j.id === jobId);
+  const c = job && job.clips[index];
+  if (!c) return;
+  igPosting = { job: jobId, index, video: c.video };
+
+  if (!ig.connected) {
+    $("#iguser").textContent = " · (Not logged in)";
+    $("#igerr").innerHTML = 'Instagram not connected. Please <a href="#view-connections" onclick="switchMainTab(\'connections\')" style="color:#c026d3;font-weight:bold;text-decoration:underline;">Log In to Instagram in Connections</a> first.';
+  } else {
+    const username = ig.account?.username || "creator";
+    $("#iguser").textContent = `· @${username}`;
+    $("#igerr").textContent = "";
+  }
+
+  let clipTitle = (c.title || "").replace(/[<>]/g, "").trim();
+  const videoTitle = (job.title || "").replace(/[<>]/g, "").trim();
+  let caption = "";
+  if (c.hook) {
+    caption = `${c.hook}\n\n${clipTitle || videoTitle || "Watch till the end!"}\n\nFollow for more daily content! ✨`;
+  } else if (c.description) {
+    caption = `${c.description}\n\nFollow for more reels! ✨`;
+  } else {
+    caption = `${clipTitle || "Must watch!"}\n\nFollow for more reels! ✨`;
+  }
+  $("#igCaption").value = caption.slice(0, 2200);
+
+  const tagsSet = new Set(["#reels", "#explorepage", "#viral", "#trending", "#fyp"]);
+  (c.hashtags || []).forEach((h) => {
+    const clean = h.replace(/^#+/, "").trim();
+    if (clean) tagsSet.add("#" + clean);
+  });
+  $("#igTags").value = Array.from(tagsSet).slice(0, 15).join(" ");
+
+  updateIgCount();
+  $("#igdlg").showModal();
+}
+
+function updateIgCount() {
+  $("#igCount").textContent = `${$("#igCaption").value.length}/2200`;
+}
+$("#igCaption")?.addEventListener("input", updateIgCount);
+$("#igCancel")?.addEventListener("click", () => $("#igdlg").close());
+
+$("#igform")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!igPosting) return;
+  if (!ig.connected) {
+    switchMainTab("connections");
+    $("#igdlg").close();
+    toast("Please log in to your Instagram account first.");
+    return;
+  }
+  const body = {
+    caption: $("#igCaption").value,
+    hashtags: $("#igTags").value.split(/[\s,]+/).map((t) => t.replace(/^#+/, "")).filter(Boolean),
+    clip_video: igPosting.video,
+  };
+  $("#igSubmit").disabled = true;
+  try {
+    await api(`/api/jobs/${igPosting.job}/clips/${igPosting.index}/instagram`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    $("#igdlg").close();
+    toast("📸 Reel queued for upload to Instagram!");
+    await refresh();
+  } catch (err) {
+    $("#igerr").textContent = err.message;
+  } finally {
+    $("#igSubmit").disabled = false;
+  }
+});
+
 // ---------- Clip Editor Modal: ASG Video Editor Studio ----------
 let editing = null;
 let transcriptTicket = 0;
@@ -3919,6 +4296,7 @@ const MI = {
   edit: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>`,
   copy: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`,
   yt: `<svg width="18" height="18" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="4" fill="#ef4444"/><path d="M10 9v6l5-3z" fill="#fff"/></svg>`,
+  ig: `<svg width="18" height="18" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="#c026d3"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1" fill="#fff"/><rect x="5.5" y="5.5" width="13" height="13" rx="3.5" fill="none" stroke="#fff" stroke-width="1.8"/></svg>`,
   open: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>`,
   del: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>`,
 };
@@ -3932,6 +4310,8 @@ function openMenu(btn, jobId, index) {
     `<button role="menuitem" type="button" data-act="copy">${MI.copy}Copy title, tags and hook</button>`,
     c.youtube?.url ? `<button role="menuitem" type="button" data-act="open">${MI.open}Open on YouTube</button>` : "",
     `<button role="menuitem" type="button" data-act="post">${MI.yt}Post to YouTube</button>`,
+    c.instagram?.url ? `<button role="menuitem" type="button" data-act="open-ig">${MI.open}Open on Instagram</button>` : "",
+    `<button role="menuitem" type="button" data-act="post-ig" style="color:#c026d3;font-weight:600">${MI.ig}Post to Instagram</button>`,
     `<button role="menuitem" type="button" data-act="edit" style="color:var(--brand);font-weight:600">${MI.edit}Edit video (crop, emojis, logo &amp; text)</button>`,
     `<div class="menu-sep" role="separator"></div>`,
     `<button role="menuitem" type="button" data-act="delete" class="danger">${MI.del}Delete this clip</button>`,
@@ -3959,6 +4339,10 @@ function openMenu(btn, jobId, index) {
       window.open(c.youtube.url, "_blank", "noopener");
     } else if (act === "post") {
       openPost(jobId, index);
+    } else if (act === "open-ig") {
+      window.open(c.instagram.url, "_blank", "noopener");
+    } else if (act === "post-ig") {
+      openInstagramPost(jobId, index);
     } else if (act === "edit") {
       openEdit(jobId, index);
     } else if (act === "delete") {
@@ -3983,6 +4367,12 @@ document.addEventListener("click", async (e) => {
   if (post) {
     const [jobId, i] = post.dataset.post.split(":");
     openPost(jobId, +i);
+    return;
+  }
+  const igpost = e.target.closest("[data-igpost]");
+  if (igpost) {
+    const [jobId, i] = igpost.dataset.igpost.split(":");
+    openInstagramPost(jobId, +i);
     return;
   }
   const ed = e.target.closest("[data-edit]");

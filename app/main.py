@@ -23,7 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 from starlette.background import BackgroundTask
 
-from . import config, render, selector, source, trim, youtube
+from . import config, instagram, render, selector, source, trim, youtube
 
 app = FastAPI(title="ASG Clipping")
 
@@ -144,6 +144,9 @@ def _load_existing() -> None:
             yt = clip.get("youtube")
             if yt and yt.get("status") in ("queued", "uploading"):
                 clip["youtube"] = {"status": "error", "error": "The app was closed during the upload. Post it again."}
+            ig = clip.get("instagram")
+            if ig and ig.get("status") in ("queued", "uploading"):
+                clip["instagram"] = {"status": "error", "error": "The app was closed during the upload. Post it again."}
         _jobs[job["id"]] = job
 
 
@@ -571,7 +574,7 @@ def download_zip(job_id: str) -> FileResponse:
 @app.get("/api/jobs")
 def list_jobs() -> list[dict]:
     with _lock:
-        return sorted(_jobs.values(), key=lambda j: -j["created"])
+        return sorted(_jobs.values(), key=lambda j: -j.get("created", 0))
 
 
 @app.get("/api/jobs/{job_id}")
@@ -608,6 +611,8 @@ def delete_job(job_id: str) -> dict:
             raise HTTPException(409, "This video is still processing.")
         if any((c.get("youtube") or {}).get("status") in ("queued", "uploading") for c in job.get("clips") or []):
             raise HTTPException(409, "A clip from this video is being posted to YouTube. Wait for it to finish.")
+        if any((c.get("instagram") or {}).get("status") in ("queued", "uploading") for c in job.get("clips") or []):
+            raise HTTPException(409, "A clip from this video is being posted to Instagram. Wait for it to finish.")
         if job_id in _editing:
             raise HTTPException(409, "A clip from this video is being re-rendered. Wait for it to finish.")
         del _jobs[job_id]
@@ -629,6 +634,8 @@ def delete_clip(job_id: str, index: int) -> dict:
         # Uploads find their clip by position, so removing one would point them at the wrong clip.
         if any((c.get("youtube") or {}).get("status") in ("queued", "uploading") for c in clips):
             raise HTTPException(409, "A clip from this video is being posted to YouTube. Wait for it to finish.")
+        if any((c.get("instagram") or {}).get("status") in ("queued", "uploading") for c in clips):
+            raise HTTPException(409, "A clip from this video is being posted to Instagram. Wait for it to finish.")
         # The editor writes its clip back by position once the render finishes.
         if job_id in _editing:
             raise HTTPException(409, "A clip from this video is being re-rendered. Wait for it to finish.")
@@ -776,6 +783,8 @@ def edit_clip(job_id: str, index: int, req: ClipEdit) -> dict:
             raise HTTPException(409, "This video is still processing.")
         if any((c.get("youtube") or {}).get("status") in ("queued", "uploading") for c in clips):
             raise HTTPException(409, "A clip from this video is being posted to YouTube. Wait for it to finish.")
+        if any((c.get("instagram") or {}).get("status") in ("queued", "uploading") for c in clips):
+            raise HTTPException(409, "A clip from this video is being posted to Instagram. Wait for it to finish.")
         clip = dict(clips[index])
         duration = job.get("duration") or 0
         if not (0 <= req.start < req.end) or (duration and req.end > duration + 0.01):
@@ -1128,6 +1137,119 @@ def _publish(job_id: str, index: int, meta: dict, notify: bool) -> None:
     except Exception as exc:
         traceback.print_exc()
         _set_youtube(job_id, index, {"status": "error", "error": f"Upload failed: {exc}"[:300]})
+
+
+# ---------- Instagram ----------
+
+class InstagramLoginRequest(BaseModel):
+    username: str = ""
+    password: str = ""
+    verification_code: str | None = None
+    sessionid: str | None = None
+
+
+class InstagramPublishRequest(BaseModel):
+    caption: str = Field(default="", max_length=2200)
+    hashtags: list[str] = Field(default_factory=list, max_length=30)
+    clip_video: str | None = None
+
+
+@app.get("/api/instagram")
+def instagram_status() -> dict:
+    return instagram.status()
+
+
+@app.post("/api/instagram/login")
+def instagram_login(req: InstagramLoginRequest) -> dict:
+    try:
+        if req.sessionid and req.sessionid.strip():
+            return instagram.login_with_sessionid(req.sessionid)
+        return instagram.login_with_credentials(
+            username=req.username,
+            password=req.password,
+            verification_code=req.verification_code,
+        )
+    except instagram.TwoFactorRequiredError as exc:
+        return {"status": "2fa_required", "message": str(exc), "two_factor_info": exc.two_factor_info}
+    except (ValueError, instagram.AuthError) as exc:
+        raise HTTPException(400, str(exc)) from None
+    except Exception as exc:
+        raise HTTPException(500, f"Instagram login failed: {exc}") from None
+
+
+@app.post("/api/instagram/disconnect")
+def instagram_disconnect() -> dict:
+    instagram.disconnect()
+    return {"ok": True}
+
+
+@app.post("/api/jobs/{job_id}/clips/{index}/instagram")
+def publish_clip_instagram(job_id: str, index: int, req: InstagramPublishRequest) -> dict:
+    if not instagram.status()["connected"]:
+        raise HTTPException(409, "Connect Instagram first.")
+    with _lock:
+        job = _jobs.get(job_id)
+        clips = (job or {}).get("clips") or []
+        if not job or not 0 <= index < len(clips):
+            raise HTTPException(404, "Clip not found.")
+        clip = clips[index]
+        if req.clip_video is not None and req.clip_video != clip.get("video"):
+            raise HTTPException(409, "This clip changed since you opened it. Reload the page and try again.")
+        if (clip.get("instagram") or {}).get("status") in ("queued", "uploading"):
+            raise HTTPException(409, "This clip is already being posted to Instagram.")
+        if job_id in _editing:
+            raise HTTPException(409, "A clip from this video is being re-rendered. Wait for it to finish.")
+        clip["instagram"] = {"status": "queued", "progress": 0}
+        _save(job)
+    _upload_pool.submit(_publish_instagram, job_id, index, req.caption, req.hashtags)
+    return clip["instagram"]
+
+
+def _set_instagram(job_id: str, index: int, value: dict) -> None:
+    with _lock:
+        job = _jobs.get(job_id)
+        if job and index < len(job.get("clips") or []):
+            job["clips"][index]["instagram"] = value
+            _save(job)
+
+
+def _publish_instagram(job_id: str, index: int, caption: str, hashtags: list[str]) -> None:
+    with _lock:
+        job = _jobs.get(job_id)
+        clip = job["clips"][index] if job else None
+    if not clip:
+        return
+    path = _job_dir(job_id) / Path(clip["video"]).name
+    thumb_path = None
+    if clip.get("thumb"):
+        tp = _job_dir(job_id) / Path(clip["thumb"]).name
+        if tp.exists():
+            thumb_path = tp
+
+    last = {"pct": -10}
+
+    def progress(pct: int) -> None:
+        if pct - last["pct"] >= 5 or pct == 100:
+            last["pct"] = pct
+            _set_instagram(job_id, index, {"status": "uploading", "progress": pct})
+
+    try:
+        _set_instagram(job_id, index, {"status": "uploading", "progress": 0})
+        result = instagram.upload_reel(
+            path=path,
+            caption=caption,
+            hashtags=hashtags,
+            thumbnail_path=thumb_path,
+            progress=progress,
+        )
+        _set_instagram(job_id, index, result)
+    except instagram.AuthError as exc:
+        _set_instagram(job_id, index, {"status": "error", "error": f"Instagram session error: {exc}"})
+    except instagram.UploadError as exc:
+        _set_instagram(job_id, index, {"status": "error", "error": str(exc)})
+    except Exception as exc:
+        traceback.print_exc()
+        _set_instagram(job_id, index, {"status": "error", "error": f"Instagram upload failed: {exc}"[:300]})
 
 
 app.mount("/fonts", StaticFiles(directory=render.FONTS_DIR), name="fonts")
