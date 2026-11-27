@@ -317,15 +317,17 @@ def _run(job_id: str, req: JobRequest) -> None:
                 else:
                     eta_str = ""
                 progress(45 + 50 * i / total_parts, f"Rendering Part {part_num} of {total_parts}{eta_str}")
-                title = f"{base_title} (Part {part_num})"
+                title = f"{base_title} (Part {part_num} / भाग {part_num})"
                 hook = f"Part {part_num} of {total_parts}: {base_title}" if req.hook else None
                 clean_name = re.sub(r'[^\w\s]', '', base_title).strip()
                 tag = re.sub(r'\s+', '', clean_name)[:15]
                 description = (
-                    f"Part {part_num} of {total_parts} of {base_title}. Continuous shorts series cut for YouTube Shorts and Instagram Reels.\n\n"
-                    f"Subscribe for Part {part_num + 1}!\n#{tag} #Shorts #Reels #ViralShorts"
+                    f"Part {part_num} of {total_parts}: {base_title} | भाग {part_num}\n\n"
+                    f"Story & Plot: Continuous video episode Part {part_num}. Watch what happens next!\n"
+                    f"कहानी का यह भाग देखिए। अगले भाग (Part {part_num + 1}) के लिए Subscribe और Follow ज़रूर करें!\n\n"
+                    f"#{tag} #Shorts #Reels #Hindi #Story #Viral #Trending #कहानी"
                 )
-                hashtags = ["Shorts", "Reels", f"Part{part_num}", "Viral"] + ([tag] if tag else [])
+                hashtags = ["Shorts", "Reels", f"Part{part_num}", "Hindi", "Kahani", "Viral"] + ([tag] if tag else [])
                 reason = f"Continuous video segment Part {part_num} of {total_parts} ({round(seg_end - seg_start)}s). Sliced for YouTube Shorts & Instagram Reels standard timing."
                 name = f"clip_{part_num:02d}"
                 keep = trim.plan(src.video_path, src.words, seg_start, seg_end) if req.trim_pauses else None

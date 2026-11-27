@@ -74,13 +74,21 @@ class _Picks(BaseModel):
     clips: list[_Pick]
 
 
-_SYSTEM = """You are a short-form video editor who picks moments from long videos for YouTube Shorts.
+_SYSTEM = """You are a short-form video editor who picks viral moments from long videos for YouTube Shorts and Instagram Reels.
 
 A clip earns views when a viewer who has seen nothing else understands and cares within the first two seconds, stays to the end, and feels something worth sharing. So choose moments that:
 - open on a strong line: a bold claim, a surprising fact, a question, a conflict, the start of a story
 - stand alone, with no reliance on earlier context ("as I said", "that thing", unexplained names)
 - deliver a payoff before the end: the answer, the punchline, the lesson, the twist
 - end on a complete thought, not mid-sentence
+
+Plot-Based Bilingual English & Hindi Metadata Rules:
+- Tailor the title, description, and hashtags strictly according to the actual plot and storyline of the video moment.
+- Generate all metadata ONLY in English and Hindi (bilingual English + Hindi / Hinglish). Do not use any other language.
+- Title: Must clearly capture the plot in English and Hindi (e.g. "The Untold Truth | असली कहानी" or "Why This Happened | ऐसा क्यों हुआ?"), max 60 characters.
+- Hook: 3-6 word on-screen hook capturing the plot in English or Hindi.
+- Description: Summarize the plot in English (1-2 sentences) followed by Hindi (e.g. "Plot: ... \n\nकहानी का सार: ...").
+- Hashtags: 3-5 plot-focused hashtags in English and Hindi without the # sign (e.g. ["Shorts", "Reels", "Hindi", "Story", "Viral"]).
 
 Skip intros, sponsor reads, housekeeping, and rambling stretches. Prefer distinct moments over several clips covering the same point. Score honestly: 90+ is rare and means a genuinely gripping standalone moment; an average usable clip is 60-75."""
 
@@ -108,8 +116,8 @@ def _prompt(
         f"Transcript, one line per index with its time range:\n{lines}\n\n"
         f"Pick the {count} best moments for Shorts. Each clip must run between {min_len} and {max_len} seconds, "
         f"measured from the start time of start_line to the end time of end_line, and be a contiguous run of lines. "
-        f"Clips must not overlap. Return them best first. Write title, hook, description and hashtags in the "
-        f"same language as the transcript."
+        f"Clips must not overlap. Return them best first. "
+        f"Write title, hook, description and hashtags strictly and ONLY in English and Hindi according to the plot of each moment."
         f"{request}"
     )
 
@@ -327,17 +335,24 @@ def select_heuristic(
         if any(not (e <= p.start or s >= p.end) for p in picked):
             continue
         first = sentences[a].text.strip()
-        title = (first[:57] + "...") if len(first) > 60 else first
+        title_base = (first[:46] + "...") if len(first) > 48 else first
+        part_idx = len(picked) + 1
+        title_bilingual = f"{title_base[:1].upper() + title_base[1:]} | भाग {part_idx}"
+        description = (
+            f"Plot Highlight: {first}\n\n"
+            f"कहानी का यह भाग देखें! अगले भाग के लिए Subscribe और Follow ज़रूर करें।\n\n"
+            f"#Shorts #Reels #Hindi #Story #Viral"
+        )
         picked.append(
             Clip(
                 start=s,
                 end=e,
-                title=title[:1].upper() + title[1:],
-                hook="",  # a hook has to be written, not sliced from the transcript; AI mode only
+                title=title_bilingual,
+                hook=_short_hook(first, 6),
                 score=int(55 + 35 * max(0.0, min(score / top, 1.0))),
-                reason="Picked by basic scoring: strong opening line, dense speech, clean ending.",
-                description=title,
-                hashtags=["shorts"],
+                reason="Picked by plot and speech density: strong opening line, dense speech, clean ending.",
+                description=description,
+                hashtags=["Shorts", "Reels", "Hindi", "Kahani", "Viral"],
             )
         )
         if len(picked) >= count:

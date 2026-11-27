@@ -3774,23 +3774,26 @@ function openPost(jobId, index) {
 
   let clipTitle = (c.title || "").replace(/[<>]/g, "").trim();
   const videoTitle = (job.title || "").replace(/[<>]/g, "").trim();
-  let postTitle = clipTitle || videoTitle || "Viral Short";
-  if (!postTitle.toLowerCase().includes("#shorts") && postTitle.length <= 92) {
+  let postTitle = clipTitle || videoTitle || "Viral Story | कहानी";
+  if (!postTitle.toLowerCase().includes("#shorts") && postTitle.length <= 90) {
     postTitle = `${postTitle} #Shorts`;
   }
   $("#ytTitle").value = postTitle.slice(0, 100);
 
   let desc = (c.description || "").trim();
   if (videoTitle && (!desc || desc.toLowerCase() === clipTitle.toLowerCase())) {
-    desc = `${clipTitle ? clipTitle + "\n\n" : ""}Best moment from ${videoTitle}!\nWatch and enjoy.\n\nSubscribe for more!`;
+    desc = `${clipTitle ? clipTitle + "\n\n" : ""}` +
+      `Plot & Story: Best moment from ${videoTitle}! Watch what happens.\n\n` +
+      `कहानी का प्लॉट: इस वीडियो में देखिए क्या हुआ! पूरा वीडियो और अगले भाग के लिए Subscribe करें।\n\n` +
+      `Subscribe for more viral moments!`;
   } else if (!desc && c.hook) {
-    desc = `${c.hook}\n\n${clipTitle}\n\nSubscribe for more!`;
-  } else if (!desc) {
-    desc = clipTitle ? `${clipTitle}\n\nSubscribe for more!` : "Enjoy this clip! Subscribe for more.";
+    desc = `Hook: "${c.hook}"\n\nPlot: ${clipTitle}\n\nकहानी: पूरा वीडियो देखें और Subscribe करें!\n\nSubscribe for more!`;
+  } else if (desc && !desc.includes("सब्सक्राइब") && !desc.includes("Subscribe")) {
+    desc = `${desc}\n\nकहानी के अगले भाग के लिए Subscribe करें! ✨`;
   }
   $("#ytDesc").value = desc;
 
-  const tagsSet = new Set(["#shorts", "#viral", "#trending"]);
+  const tagsSet = new Set(["#shorts", "#reels", "#hindi", "#story", "#kahani", "#viral", "#trending", "#कहानी"]);
   (c.hashtags || []).forEach((h) => {
     const clean = h.replace(/^#+/, "").trim();
     if (clean) tagsSet.add("#" + clean);
@@ -3880,15 +3883,18 @@ function openInstagramPost(jobId, index) {
   const videoTitle = (job.title || "").replace(/[<>]/g, "").trim();
   let caption = "";
   if (c.hook) {
-    caption = `${c.hook}\n\n${clipTitle || videoTitle || "Watch till the end!"}\n\nFollow for more daily content! ✨`;
+    caption = `🔥 ${c.hook}\n\n` +
+      `Plot & Story: ${clipTitle || videoTitle || "Watch how this story unfolds!"}\n\n` +
+      `कहानी का मोड़: देखिए आगे क्या हुआ! अगले भाग के लिए Follow करें ✨\n\n` +
+      `Follow @${ig.account?.username || "creator"} for more reels!`;
   } else if (c.description) {
-    caption = `${c.description}\n\nFollow for more reels! ✨`;
+    caption = `${c.description}\n\nकहानी और अगले भाग के लिए Follow करें ✨\n\nFollow for more reels!`;
   } else {
-    caption = `${clipTitle || "Must watch!"}\n\nFollow for more reels! ✨`;
+    caption = `${clipTitle || "Must watch story!"}\n\nकहानी का यह भाग देखें और Follow करें ✨`;
   }
   $("#igCaption").value = caption.slice(0, 2200);
 
-  const tagsSet = new Set(["#reels", "#explorepage", "#viral", "#trending", "#fyp"]);
+  const tagsSet = new Set(["#reels", "#explorepage", "#viral", "#trending", "#hindi", "#story", "#kahani", "#fyp"]);
   (c.hashtags || []).forEach((h) => {
     const clean = h.replace(/^#+/, "").trim();
     if (clean) tagsSet.add("#" + clean);
