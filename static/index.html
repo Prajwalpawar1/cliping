@@ -938,6 +938,30 @@
     transition: opacity 0.15s ease;
   }
   .btn-ig-gradient:hover { opacity: 0.92; color: #fff; }
+  .ig-tab-btn {
+    padding: 7px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--panel-1);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ig-tab-btn:hover {
+    background: var(--panel-2);
+    color: var(--text);
+  }
+  .ig-tab-btn.active {
+    background: linear-gradient(45deg, #f09433, #dc2743, #bc1888);
+    color: #ffffff !important;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(220, 39, 67, 0.25);
+  }
   .s-tab.posted-ig-tab.active { background: #fdf2f8; color: #be185d; border-color: #fbcfe8; }
   .info .actions .more { flex: none; width: 40px; padding: 0; margin-left: auto; background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
   .info .actions .more:hover { color: var(--text); background: var(--panel-2); }
@@ -2013,11 +2037,35 @@
 
           <!-- Inline Login Box -->
           <div class="ck-inline-box" id="igLoginBox" style="background:var(--panel-2);border-radius:10px;padding:14px;margin-top:10px;">
-            <div style="display:flex;gap:8px;margin-bottom:10px;">
-              <button type="button" class="sp-btn active" id="btnIgModeCreds" style="padding:4px 10px;font-size:12px;">Login with ID</button>
-              <button type="button" class="sp-btn" id="btnIgModeSession" style="padding:4px 10px;font-size:12px;">Session ID Cookie</button>
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+              <button type="button" class="ig-tab-btn active" id="btnIgModeSession">⚡ Session ID Cookie (Recommended)</button>
+              <button type="button" class="ig-tab-btn" id="btnIgModeCreds">🔑 Username &amp; Password</button>
             </div>
-            <div id="igCredsFields">
+
+            <!-- Session ID Mode (100% Reliable, bypasses mobile version blocks) -->
+            <div id="igSessionFields">
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px;">Instagram Session ID Cookie:</label>
+              <input type="text" id="igSessionId" placeholder="Paste sessionid here (e.g. 681928374%3A...)" style="width:100%;padding:9px 12px;font-size:13px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-family:monospace;">
+              
+              <div style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.25);border-radius:8px;padding:10px 12px;margin-top:4px;font-size:12px;line-height:1.6;color:var(--text-main);">
+                <b style="color:#d97706;display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                  <span>💡</span> 3-Step Guide to get your Session ID in 10 seconds:
+                </b>
+                <ol style="margin:0;padding-left:18px;">
+                  <li>Open <a href="https://www.instagram.com" target="_blank" rel="noopener" style="color:#c026d3;font-weight:600;text-decoration:underline;">instagram.com ↗</a> in your browser (Chrome, Edge, Brave, Firefox) and make sure you are logged in.</li>
+                  <li>Press <kbd style="background:var(--panel-1);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:11px;">F12</kbd> (or Right Click &rarr; <i>Inspect</i>).</li>
+                  <li>Go to <b>Application</b> tab (or <b>Storage</b> in Firefox) &rarr; <b>Cookies</b> &rarr; <b>https://www.instagram.com</b>. Double-click the value of <b>sessionid</b>, copy it, and paste it above!</li>
+                </ol>
+                <div style="margin-top:6px;font-size:11.5px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap;">
+                  <span>✓ 100% Reliable (Bypasses app version checks)</span>
+                  <span>✓ No SMS/2FA verification needed</span>
+                  <span>✓ Direct Reel publishing</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Credentials Mode -->
+            <div id="igCredsFields" hidden>
               <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px;">Instagram Username or Email:</label>
               <input type="text" id="igUsername" placeholder="your_instagram_id" autocomplete="username" style="width:100%;padding:8px 10px;font-size:13.5px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;">
               <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px;">Instagram Password:</label>
@@ -2026,13 +2074,12 @@
                 <label style="font-size:12.5px;font-weight:600;display:block;color:#b45309;margin-bottom:4px;">Security / 2FA Code:</label>
                 <input type="text" id="ig2faCode" placeholder="6-digit verification code" style="width:100%;padding:8px 10px;font-size:13.5px;border:1px solid #fde68a;border-radius:6px;background:#fffbeb;margin-bottom:8px;">
               </div>
+              <small style="color:var(--text-muted);display:block;font-size:11.5px;margin-top:2px;">
+                Note: Instagram may block automated logins with "version out of date". If that happens, use the Session ID Cookie tab above.
+              </small>
             </div>
-            <div id="igSessionFields" hidden>
-              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px;">Instagram Session ID Cookie:</label>
-              <input type="text" id="igSessionId" placeholder="sessionid cookie value" style="width:100%;padding:8px 10px;font-size:13.5px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;">
-              <small style="color:var(--text-muted);display:block;font-size:11.5px;">From browser cookies (Application &gt; Cookies &gt; instagram.com &gt; sessionid)</small>
-            </div>
-            <div id="igLoginMsg" style="font-size:12.5px;margin-top:6px;font-weight:600;"></div>
+
+            <div id="igLoginMsg" style="font-size:12.5px;margin-top:8px;"></div>
           </div>
         </div>
 
@@ -2603,7 +2650,7 @@ async function loadInstagram() {
 }
 
 // Instagram Login Handlers
-let igLoginMode = "creds";
+let igLoginMode = "session";
 $("#btnIgModeCreds")?.addEventListener("click", () => {
   igLoginMode = "creds";
   $("#btnIgModeCreds").classList.add("active");
@@ -2634,7 +2681,7 @@ $("#btnConnectIG")?.addEventListener("click", async () => {
     let payload = {};
     if (igLoginMode === "session") {
       const sess = $("#igSessionId")?.value.trim();
-      if (!sess) throw new Error("Please enter your Instagram session ID cookie.");
+      if (!sess) throw new Error("Please enter your Instagram session ID cookie (see 3-step guide above).");
       payload = { sessionid: sess };
     } else {
       const u = $("#igUsername")?.value.trim();
@@ -2672,7 +2719,30 @@ $("#btnConnectIG")?.addEventListener("click", async () => {
   } catch (err) {
     if (msgEl) {
       msgEl.style.color = "var(--bad)";
-      msgEl.textContent = `✕ ${err.message}`;
+      const errMsg = err.message || "";
+      if (
+        errMsg.toLowerCase().includes("out of date") ||
+        errMsg.toLowerCase().includes("session id") ||
+        errMsg.toLowerCase().includes("version")
+      ) {
+        msgEl.innerHTML = `
+          <div style="background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:8px;padding:10px 12px;margin-top:6px;">
+            <div style="color:var(--bad);font-weight:600;margin-bottom:4px;">✕ Instagram Mobile App Login Blocked</div>
+            <div style="font-size:12px;color:var(--text-main);margin-bottom:8px;line-height:1.5;">
+              Instagram rejects automated password logins with "version out of date". Connect 100% reliably in 1-click using your browser Session ID:
+            </div>
+            <button type="button" id="btnSwitchToSessionNow" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#bc1888);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">
+              ⚡ Switch to Session ID Cookie Mode &rarr;
+            </button>
+          </div>
+        `;
+        document.getElementById("btnSwitchToSessionNow")?.addEventListener("click", () => {
+          $("#btnIgModeSession")?.click();
+          $("#igSessionId")?.focus();
+        });
+      } else {
+        msgEl.textContent = `✕ ${errMsg}`;
+      }
     }
   } finally {
     btn.disabled = false;

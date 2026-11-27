@@ -36,6 +36,29 @@ class UploadError(RuntimeError):
     pass
 
 
+def sanitize_sessionid(raw: str) -> str:
+    """Cleans and extracts the raw sessionid cookie value from user input.
+
+    Handles full cookie headers (e.g. 'sessionid=XYZ; ds_user_id=123'),
+    leading 'sessionid=' or 'sessionid:', surrounding quotes, and whitespace.
+    """
+    s = (raw or "").strip()
+    if not s:
+        return ""
+    # If pasted as cookie string with semicolons
+    if ";" in s:
+        for part in s.split(";"):
+            part = part.strip()
+            if re.match(r"^sessionid\s*=", part, flags=re.IGNORECASE):
+                s = re.sub(r"^sessionid\s*=", "", part, flags=re.IGNORECASE)
+                break
+    # Remove leading "sessionid=" or "sessionid: "
+    s = re.sub(r"^sessionid\s*[=:]\s*", "", s, flags=re.IGNORECASE)
+    # Strip quotes and whitespace
+    s = s.strip("\"' \t\r\n")
+    return s
+
+
 def _clean_caption(text: str) -> str:
     return (text or "").strip()
 
@@ -151,6 +174,7 @@ def login_with_credentials(
     from instagrapi.exceptions import (
         BadPassword,
         ChallengeRequired,
+        ClientNeedsUpgradeError,
         FeedbackRequired,
         PleaseWaitFewMinutes,
         TwoFactorRequired,
@@ -178,16 +202,29 @@ def login_with_credentials(
         ) from exc
     except BadPassword as exc:
         raise AuthError("Incorrect Instagram username or password.") from exc
+    except ClientNeedsUpgradeError as exc:
+        raise AuthError(
+            "Instagram rejected mobile app login with 'Version out of date'. "
+            "Instagram blocks automated password logins on modern accounts. "
+            "Please switch to the 'Session ID Cookie' tab above to connect instantly in 1-click using your browser session cookie."
+        ) from exc
     except ChallengeRequired as exc:
         raise AuthError(
             "Instagram requested a checkpoint verification. Please approve 'This Was Me' on your Instagram mobile app, or use Session ID login."
         ) from exc
     except PleaseWaitFewMinutes as exc:
-        raise AuthError("Instagram is temporarily rate-limiting logins. Please wait a few minutes and try again.") from exc
+        raise AuthError("Instagram is temporarily rate-limiting logins. Please wait a few minutes or switch to Session ID login.") from exc
     except FeedbackRequired as exc:
-        raise AuthError(f"Instagram security feedback required: {exc}") from exc
+        raise AuthError(f"Instagram security feedback required: {exc}. Please use Session ID login to connect directly.") from exc
     except Exception as exc:
-        raise AuthError(f"Instagram login failed: {exc}") from exc
+        err_msg = str(exc)
+        if any(w in err_msg.lower() for w in ["out of date", "upgrade your app", "needs_upgrade", "caa login"]):
+            raise AuthError(
+                "Instagram rejected mobile app login with 'Version out of date'. "
+                "Instagram blocks automated password logins on modern accounts. "
+                "Please switch to the 'Session ID Cookie' tab above to connect instantly in 1-click using your browser session cookie."
+            ) from exc
+        raise AuthError(f"Instagram login failed: {err_msg}") from exc
 
     # Persist client settings
     try:
@@ -223,15 +260,18 @@ def login_with_sessionid(sessionid: str) -> dict:
     """Log in to Instagram using a session ID cookie."""
     from instagrapi import Client
 
-    sessionid = sessionid.strip()
-    if not sessionid:
+    clean_sid = sanitize_sessionid(sessionid)
+    if not clean_sid:
         raise ValueError("Session ID cannot be empty.")
 
     cl = Client()
     try:
-        cl.login_by_sessionid(sessionid)
+        cl.login_by_sessionid(clean_sid)
     except Exception as exc:
-        raise AuthError(f"Invalid or expired Instagram session ID: {exc}") from exc
+        raise AuthError(
+            f"Invalid or expired Instagram session ID: {exc}. "
+            "Please ensure you are logged into instagram.com and copied the valid 'sessionid' cookie value."
+        ) from exc
 
     try:
         SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -257,7 +297,7 @@ def login_with_sessionid(sessionid: str) -> dict:
         "user_id": user_id,
         "full_name": full_name,
         "profile_pic_url": profile_pic_url,
-        "sessionid": sessionid,
+        "sessionid": clean_sid,
         "connected_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "method": "sessionid",
     }

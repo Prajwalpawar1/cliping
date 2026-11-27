@@ -19,8 +19,14 @@ def clean_instagram_session(tmp_path, monkeypatch):
     monkeypatch.setattr(instagram, "SESSION_FILE", test_session_file)
     monkeypatch.setattr(instagram, "TOKEN_FILE", test_token_file)
     yield
-    test_session_file.unlink(missing_ok=True)
-    test_token_file.unlink(missing_ok=True)
+    try:
+        test_session_file.unlink(missing_ok=True)
+    except Exception:
+        pass
+    try:
+        test_token_file.unlink(missing_ok=True)
+    except Exception:
+        pass
 
 
 def test_build_caption():
@@ -118,6 +124,39 @@ def test_login_with_credentials_2fa_required():
         assert exc_info.value.two_factor_info["username"] == "secure_user"
 
 
+def test_sanitize_sessionid():
+    assert instagram.sanitize_sessionid("123456789%3Aabc123") == "123456789%3Aabc123"
+    assert instagram.sanitize_sessionid("sessionid=123456789%3Aabc123") == "123456789%3Aabc123"
+    assert instagram.sanitize_sessionid("sessionid: 123456789%3Aabc123") == "123456789%3Aabc123"
+    assert instagram.sanitize_sessionid("\"123456789%3Aabc123\"") == "123456789%3Aabc123"
+    assert instagram.sanitize_sessionid("sessionid=\"123456789%3Aabc123\"; path=/; domain=.instagram.com") == "123456789%3Aabc123"
+    assert instagram.sanitize_sessionid("   ") == ""
+
+
+def test_login_with_credentials_out_of_date_error():
+    mock_cl = MagicMock()
+    mock_cl.login.side_effect = Exception("Your version of Instagram is out of date. Please upgrade your app to log in to Instagram.")
+
+    with patch("instagrapi.Client", return_value=mock_cl):
+        with pytest.raises(instagram.AuthError) as exc_info:
+            instagram.login_with_credentials("my_user", "my_pass")
+        assert "Version out of date" in str(exc_info.value)
+        assert "Session ID Cookie" in str(exc_info.value)
+
+
+def test_login_with_credentials_needs_upgrade_error():
+    from instagrapi.exceptions import ClientNeedsUpgradeError
+
+    mock_cl = MagicMock()
+    mock_cl.login.side_effect = ClientNeedsUpgradeError("needs_upgrade")
+
+    with patch("instagrapi.Client", return_value=mock_cl):
+        with pytest.raises(instagram.AuthError) as exc_info:
+            instagram.login_with_credentials("my_user", "my_pass")
+        assert "Version out of date" in str(exc_info.value)
+        assert "Session ID Cookie" in str(exc_info.value)
+
+
 def test_login_with_sessionid_success():
     mock_cl = MagicMock()
     mock_cl.user_id = 88888
@@ -133,6 +172,22 @@ def test_login_with_sessionid_success():
         assert res["connected"] is True
         assert res["account"]["username"] == "session_user"
         mock_cl.login_by_sessionid.assert_called_once_with("fake_session_id_12345")
+
+
+def test_login_with_sessionid_sanitizes_input():
+    mock_cl = MagicMock()
+    mock_cl.user_id = 77777
+    mock_account = MagicMock()
+    mock_account.username = "sanitized_user"
+    mock_account.full_name = "Sanitized User"
+    mock_account.profile_pic_url = None
+    mock_account.pk = 77777
+    mock_cl.account_info.return_value = mock_account
+
+    with patch("instagrapi.Client", return_value=mock_cl):
+        res = instagram.login_with_sessionid('sessionid="77777%3Aabcxyz1234567890"; domain=.instagram.com')
+        assert res["connected"] is True
+        mock_cl.login_by_sessionid.assert_called_once_with("77777%3Aabcxyz1234567890")
 
 
 def test_upload_reel_success(tmp_path):
@@ -220,13 +275,14 @@ def test_api_publish_clip_instagram(tmp_path, monkeypatch):
         main._save(main._jobs[job_id])
 
     # Publish clip to Instagram
-    with patch("app.instagram.upload_reel", return_value={"status": "done", "media_id": "999", "code": "ABC", "url": "https://www.instagram.com/reel/ABC/"}):
+    with patch("app.main.threading.Thread") as mock_thread:
         res = client.post(
             f"/api/jobs/{job_id}/clips/0/instagram",
             json={"caption": "Test Reel Caption", "hashtags": ["reels", "viral"]},
         )
         assert res.status_code == 200
         assert res.json()["status"] == "queued"
+        mock_thread.return_value.start.assert_called_once()
 
     # Test delete guard while uploading
     with main._lock:
